@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>สั่งซื้อกัญชาออนไลน์ - Delivery</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen pb-24">
+
+    <!-- NAVBAR -->
+    <nav class="bg-emerald-600 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-lg font-bold">🌿 Cannabis Delivery</h1>
+            <button onclick="toggleCart()" class="relative p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span id="cartCountBadge"
+                    class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- HERO / PROMO -->
+    <div class="bg-emerald-700 text-white px-4 py-6 text-center rounded-b-3xl shadow-md mb-6">
+        <h2 class="text-2xl font-bold mb-2">บริการส่งด่วน! 🛵</h2>
+        <p class="text-sm opacity-90 mb-1">เรียกรถส่งให้ทันที คิดค่าส่งตามระยะทางจริง</p>
+        <div class="inline-block bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1 mt-2 border border-white/30">
+            <span class="text-xs font-semibold">🔥 โปรโมชั่น: สั่งครบ 1,000 บาท ส่งฟรี!</span>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="max-w-md mx-auto px-4">
+
+        <!-- SEARCH -->
+        <div class="mb-6 relative">
+            <input type="text" id="searchInput" placeholder="ค้นหาสายพันธุ์..."
+                class="w-full pl-10 pr-4 py-3 rounded-xl border-none shadow-sm focus:ring-2 focus:ring-emerald-500 bg-white text-sm">
+            <svg class="w-5 h-5 text-slate-400 absolute left-3 top-3.5" fill="none" stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+        </div>
+
+        <!-- PRODUCT GRID -->
+        <div id="productGrid" class="grid grid-cols-2 gap-3 pb-8">
+            <!-- Products will be rendered here -->
+        </div>
+
+    </div>
+
+    <!-- CART MODAL (Full screen on mobile) -->
+    <div id="cartModal" class="fixed inset-0 z-50 bg-black/50 hidden backdrop-blur-sm transition-opacity">
+        <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl h-[85vh] flex flex-col shadow-2xl transform transition-transform duration-300 translate-y-full"
+            id="cartContent">
+
+            <!-- Cart Header -->
+            <div class="p-4 border-b flex justify-between items-center bg-slate-50 rounded-t-3xl">
+                <h2 class="font-bold text-lg text-slate-800">ตะกร้าสินค้า <span id="cartTotalCount"
+                        class="text-sm font-normal text-slate-500">(0)</span></h2>
+                <button onclick="toggleCart()" class="p-2 bg-slate-200 rounded-full hover:bg-slate-300">
+                    <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Cart Items -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4" id="cartItemsContainer">
+                <!-- Items go here -->
+                <div class="text-center py-10 text-slate-400">
+                    <p>ยังไม่มีสินค้าในตะกร้า</p>
+                    <button onclick="toggleCart()" class="mt-4 text-emerald-600 font-medium">ไปเลือกซื้อเลย</button>
+                </div>
+            </div>
+
+            <!-- Delivery Info & Total -->
+            <div class="p-4 bg-slate-50 border-t space-y-3">
+
+                <!-- Delivery Status -->
+                <div id="deliveryStatus"
+                    class="flex justify-between items-center text-sm p-3 rounded-lg bg-white border">
+                    <span class="text-slate-600">ค่าจัดส่ง</span>
+                    <span class="font-bold text-slate-800">คิดตามระยะทาง</span>
+                </div>
+
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-slate-600">ยอดรวมสินค้า</span>
+                    <span id="cartSubtotal" class="text-xl font-bold text-emerald-700">0.00 ฿</span>
+                </div>
+
+                <button onclick="showCheckoutForm()" id="checkoutBtn"
+                    class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+                    disabled>
+                    ดำเนินการสั่งซื้อ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHECKOUT FORM MODAL -->
+    <div id="checkoutModal" class="fixed inset-0 z-[60] bg-white hidden flex-col">
+        <div class="p-4 border-b flex items-center gap-3 bg-slate-50">
+            <button onclick="hideCheckoutForm()" class="p-2 -ml-2">
+                <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+            <h2 class="font-bold text-lg">ข้อมูลจัดส่ง</h2>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-5">
+            <form id="orderForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้รับ</label>
+                    <input type="text" id="customerName"
+                        class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        placeholder="ชื่อของคุณ" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">เบอร์โทรศัพท์</label>
+                    <input type="tel" id="customerPhone"
+                        class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        placeholder="08x-xxx-xxxx" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">ที่อยู่จัดส่ง / จุดสังเกต</label>
+                    <textarea id="customerAddress" rows="3"
+                        class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        placeholder="บ้านเลขที่, ซอย, หมู่บ้าน..." required></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">ลิ้งค์ Google Maps (ถ้ามี)</label>
+                    <input type="url" id="customerMap"
+                        class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        placeholder="https://maps.app.goo.gl/...">
+                    <p class="text-[10px] text-slate-400 mt-1">ช่วยให้ไรเดอร์หาเจอง่ายขึ้น</p>
+                </div>
+            </form>
+
+            <div class="mt-8 bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                <h3 class="font-bold text-emerald-800 mb-2">สรุปยอด</h3>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-emerald-700">ค่าสินค้า</span>
+                    <span id="finalProductTotal" class="font-medium">0.00 ฿</span>
+                </div>
+                <div class="flex justify-between text-sm mb-3">
+                    <span class="text-emerald-700">ค่าส่ง</span>
+                    <span id="finalDeliveryFee" class="font-medium">รอคำนวณ</span>
+                </div>
+                <div class="border-t border-emerald-200 pt-2 flex justify-between items-end">
+                    <span class="font-bold text-emerald-900">ยอดชำระ</span>
+                    <span id="finalTotal" class="text-xl font-bold text-emerald-700">0.00 ฿</span>
+                </div>
+                <p id="finalNote" class="text-[10px] text-emerald-600 mt-2 text-right">*ไม่รวมค่าส่ง (ถ้ามี)</p>
+            </div>
+        </div>
+
+        <div class="p-4 border-t bg-white">
+            <button onclick="submitOrder()"
+                class="w-full bg-[#06C755] text-white py-3.5 rounded-xl font-bold shadow-lg hover:bg-[#05b54d] flex justify-center items-center gap-2">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                        d="M20.456 3.545C20.456 3.545 22.82 2.364 22.583 4.727C22.524 5.555 21.992 8.333 21.578 10.522L20.159 18.033C20.159 18.033 19.982 20.103 18.327 20.458C16.672 20.813 13.774 18.921 13.597 18.803C13.42 18.685 10.403 16.852 9.339 15.906C9.043 15.61 8.747 15.019 9.398 14.428L17.796 6.488C18.151 6.133 18.506 5.305 17.028 6.311L5.85 13.955C5.85 13.955 4.667 14.665 2.479 13.955L0.527 13.364C0.527 13.364 -1.366 12.181 1.947 10.88L18.623 4.432C18.623 4.432 20.456 3.545 20.456 3.545Z" />
+                </svg>
+                ยืนยันการสั่งซื้อทาง LINE
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const products = [
+            { name: "Gelato X", size: "1G", price: 19, note: "hybrid", tags: ["โปรโมชั่น"] },
+            { name: "Gelato X", size: "12G", price: 200, note: "hybrid", tags: ["สุดคุ้ม"] },
+            { name: "Gelato X (ปกติ)", size: "1G", price: 100, note: "indica" },
+            { name: "Gelato X (ปกติ)", size: "3G", price: 270, note: "indica" },
+            { name: "Gelato X (ปกติ)", size: "5G", price: 450, note: "indica" },
+            { name: "X-PRO", size: "1G", price: 100, note: "hybrid" },
+            { name: "X-PRO", size: "3G", price: 210, note: "hybrid" },
+            { name: "X-PRO", size: "5G", price: 450, note: "hybrid" },
+            { name: "Wedding Cake", size: "1G", price: 90, note: "hybrid-sativa" },
+            { name: "Wedding Cake", size: "3G", price: 250, note: "hybrid-sativa" },
+            { name: "Cherry Lemon", size: "1G", price: 90, note: "hybrid" },
+            { name: "Cherry Lemon", size: "3G", price: 250, note: "hybrid" },
+            { name: "MAC-1", size: "1G", price: 90, note: "hybrid-sativa" },
+            { name: "MAC-1", size: "3G", price: 250, note: "hybrid-sativa" },
+            { name: "Gator Breath", size: "1G", price: 90, note: "hybrid" },
+            { name: "Gator Breath", size: "3G", price: 250, note: "hybrid" },
+            { name: "RS-11", size: "1G", price: 80, note: "indica" },
+            { name: "RS-11", size: "3G", price: 200, note: "indica" },
+            { name: "Cinnamon Milk", size: "1G", price: 80, note: "hybrid" },
+            { name: "Cinnamon Milk", size: "3G", price: 200, note: "hybrid" },
+            { name: "London Maker", size: "1G", price: 120, note: "indica" },
+            { name: "London Maker", size: "3G", price: 300, note: "indica" },
+            { name: "Banana Apple", size: "1G", price: 60, note: "hybrid" },
+            { name: "Banana Apple", size: "3G", price: 150, note: "hybrid" },
+            { name: "Candy Pave", size: "1G", price: 150, note: "indica" },
+            { name: "Candy Pave", size: "3G", price: 400, note: "indica" },
+            { name: "Sugar Baby", size: "1G", price: 150, note: "hybrid" },
+            { name: "Sugar Baby", size: "3G", price: 400, note: "hybrid" },
+            { name: "Pink Runt", size: "1G", price: 250, note: "hybrid" },
+            { name: "Pink Runt", size: "3G", price: 600, note: "hybrid" },
+            { name: "Lemon Cherry Delight", size: "1G", price: 250, note: "sativa" },
+            { name: "Lemon Cherry Delight", size: "3G", price: 600, note: "sativa" },
+            { name: "Alien Mint", size: "1G", price: 250, note: "indica" },
+            { name: "Alien Mint", size: "3G", price: 600, note: "indica" },
+            { name: "Gelato 41", size: "1G", price: 250, note: "hybrid/indica" },
+            { name: "Gelato 41", size: "3G", price: 600, note: "hybrid/indica" },
+            { name: "King Juice", size: "1G", price: 150, note: "hybrid" },
+            { name: "King Juice", size: "3G", price: 400, note: "hybrid" },
+            { name: "Guava Pie", size: "1G", price: 40, note: "hybrid" },
+            { name: "Guava Pie", size: "3G", price: 100, note: "hybrid" },
+            { name: "Sugar Cane", size: "1G", price: 40, note: "indica" },
+            { name: "Sugar Cane", size: "3G", price: 100, note: "indica" },
+            { name: "MYSTERY ROLL 77", size: "1 Roll", price: 65, note: "pre-roll" },
+        ];
+
+        let cart = [];
+
+        // --- RENDER ---
+        function renderProducts(filter = "") {
+            const grid = document.getElementById("productGrid");
+            grid.innerHTML = "";
+
+            const q = filter.toLowerCase();
+            const filtered = products.filter(p =>
+                p.name.toLowerCase().includes(q) ||
+                p.note.toLowerCase().includes(q)
+            );
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-2 text-center text-slate-400 py-10">ไม่พบสินค้า</div>`;
+                return;
+            }
+
+            filtered.forEach((p, index) => {
+                const id = products.indexOf(p); // Use original index as ID
+                const card = document.createElement("div");
+                card.className = "bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col";
+
+                // Placeholder Image (Gradient)
+                const hue = Math.floor(Math.random() * 360);
+
+                card.innerHTML = `
+                    <div class="h-24 bg-gradient-to-br from-emerald-100 to-slate-200 flex items-center justify-center relative">
+                        <span class="text-3xl">🌿</span>
+                        ${p.tags ? `<span class="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">${p.tags[0]}</span>` : ''}
+                    </div>
+                    <div class="p-3 flex-1 flex flex-col">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-800 leading-tight">${p.name}</h3>
+                            <p class="text-xs text-slate-500 mt-1">${p.note}</p>
+                        </div>
+                        <div class="mt-3 flex items-end justify-between">
+                            <div>
+                                <p class="text-xs text-slate-400">ขนาด ${p.size}</p>
+                                <p class="font-bold text-emerald-600">${p.price} ฿</p>
+                            </div>
+                            <button onclick="addToCart(${id})" class="bg-emerald-100 text-emerald-700 p-2 rounded-lg hover:bg-emerald-200 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- CART LOGIC ---
+        function addToCart(index) {
+            const p = products[index];
+            const existing = cart.find(item => item.productIndex === index);
+
+            if (existing) {
+                existing.qty++;
+            } else {
+                cart.push({ productIndex: index, qty: 1 });
+            }
+
+            updateCartUI();
+
+            // Animation feedback
+            const btn = document.querySelector(`button[onclick="addToCart(${index})"]`);
+            if (btn) {
+                const original = btn.innerHTML;
+                btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                btn.classList.add("bg-emerald-600", "text-white");
+                btn.classList.remove("bg-emerald-100", "text-emerald-700");
+                setTimeout(() => {
+                    btn.innerHTML = original;
+                    btn.classList.remove("bg-emerald-600", "text-white");
+                    btn.classList.add("bg-emerald-100", "text-emerald-700");
+                }, 500);
+            }
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+        }
+
+        function updateQty(index, change) {
+            const item = cart[index];
+            item.qty += change;
+            if (item.qty <= 0) {
+                removeFromCart(index);
+            } else {
+                updateCartUI();
+            }
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById("cartItemsContainer");
+            const badge = document.getElementById("cartCountBadge");
+            const totalCount = document.getElementById("cartTotalCount");
+            const subtotalEl = document.getElementById("cartSubtotal");
+            const checkoutBtn = document.getElementById("checkoutBtn");
+            const deliveryStatus = document.getElementById("deliveryStatus");
+
+            // Count
+            const count = cart.reduce((sum, item) => sum + item.qty, 0);
+            badge.textContent = count;
+            badge.classList.toggle("hidden", count === 0);
+            totalCount.textContent = `(${count})`;
+
+            // Items
+            container.innerHTML = "";
+            let subtotal = 0;
+
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 text-slate-400 flex flex-col items-center">
+                        <svg class="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                        <p>ยังไม่มีสินค้าในตะกร้า</p>
+                        <button onclick="toggleCart()" class="mt-4 text-emerald-600 font-medium text-sm">ไปเลือกซื้อเลย</button>
+                    </div>`;
+                checkoutBtn.disabled = true;
+            } else {
+                cart.forEach((item, idx) => {
+                    const p = products[item.productIndex];
+                    const total = p.price * item.qty;
+                    subtotal += total;
+
+                    const div = document.createElement("div");
+                    div.className = "flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm";
+                    div.innerHTML = `
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-slate-800 text-sm">${p.name}</h4>
+                            <p class="text-xs text-slate-500">${p.size} • ${p.price} ฿</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center bg-slate-100 rounded-lg">
+                                <button onclick="updateQty(${idx}, -1)" class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-200 rounded-l-lg">-</button>
+                                <span class="w-6 text-center text-sm font-medium">${item.qty}</span>
+                                <button onclick="updateQty(${idx}, 1)" class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-200 rounded-r-lg">+</button>
+                            </div>
+                            <div class="text-right w-16">
+                                <p class="font-bold text-emerald-700 text-sm">${total} ฿</p>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+                checkoutBtn.disabled = false;
+            }
+
+            subtotalEl.textContent = subtotal.toLocaleString() + " ฿";
+
+            // Delivery Logic
+            if (subtotal >= 1000) {
+                deliveryStatus.innerHTML = `
+                    <span class="text-emerald-600 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        ส่งฟรี!
+                    </span>
+                    <span class="font-bold text-emerald-600">0 ฿</span>
+                `;
+                deliveryStatus.className = "flex justify-between items-center text-sm p-3 rounded-lg bg-emerald-50 border border-emerald-100";
+            } else {
+                const diff = 1000 - subtotal;
+                deliveryStatus.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="text-slate-600">ค่าจัดส่ง</span>
+                        <span class="text-[10px] text-orange-500">ซื้ออีก ${diff.toLocaleString()} ฿ ส่งฟรี</span>
+                    </div>
+                    <span class="font-bold text-slate-800 text-right">เก็บปลายทาง<br><span class="text-[10px] font-normal text-slate-500">(คิดตามระยะทาง)</span></span>
+                `;
+                deliveryStatus.className = "flex justify-between items-center text-sm p-3 rounded-lg bg-white border";
+            }
+        }
+
+        // --- UI TOGGLES ---
+        function toggleCart() {
+            const modal = document.getElementById("cartModal");
+            const content = document.getElementById("cartContent");
+
+            if (modal.classList.contains("hidden")) {
+                modal.classList.remove("hidden");
+                // Small delay for animation
+                setTimeout(() => {
+                    content.classList.remove("translate-y-full");
+                }, 10);
+            } else {
+                content.classList.add("translate-y-full");
+                setTimeout(() => {
+                    modal.classList.add("hidden");
+                }, 300);
+            }
+        }
+
+        function showCheckoutForm() {
+            toggleCart(); // Close cart
+            document.getElementById("checkoutModal").classList.remove("hidden");
+            document.getElementById("checkoutModal").classList.add("flex");
+
+            // Update summary in checkout
+            let subtotal = 0;
+            cart.forEach(item => {
+                subtotal += products[item.productIndex].price * item.qty;
+            });
+
+            document.getElementById("finalProductTotal").textContent = subtotal.toLocaleString() + " ฿";
+
+            const deliveryEl = document.getElementById("finalDeliveryFee");
+            const totalEl = document.getElementById("finalTotal");
+            const noteEl = document.getElementById("finalNote");
+
+            if (subtotal >= 1000) {
+                deliveryEl.textContent = "0 ฿ (ส่งฟรี)";
+                deliveryEl.classList.add("text-emerald-600");
+                totalEl.textContent = subtotal.toLocaleString() + " ฿";
+                noteEl.classList.add("hidden");
+            } else {
+                deliveryEl.textContent = "เก็บปลายทาง";
+                deliveryEl.classList.remove("text-emerald-600");
+                totalEl.textContent = subtotal.toLocaleString() + " ฿";
+                noteEl.classList.remove("hidden");
+                noteEl.textContent = "*ยอดนี้ยังไม่รวมค่าส่ง (ลูกค้าชำระค่าส่งกับไรเดอร์)";
+            }
+        }
+
+        function hideCheckoutForm() {
+            document.getElementById("checkoutModal").classList.add("hidden");
+            document.getElementById("checkoutModal").classList.remove("flex");
+            toggleCart(); // Re-open cart
+        }
+
+        function submitOrder() {
+            const form = document.getElementById("orderForm");
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const name = document.getElementById("customerName").value;
+            const phone = document.getElementById("customerPhone").value;
+            const address = document.getElementById("customerAddress").value;
+            const map = document.getElementById("customerMap").value;
+
+            let msg = `🛒 *สั่งซื้อสินค้าใหม่* \n`;
+            msg += `----------------------------\n`;
+
+            let subtotal = 0;
+            cart.forEach(item => {
+                const p = products[item.productIndex];
+                const total = p.price * item.qty;
+                subtotal += total;
+                msg += `▫️ ${p.name} (${p.size}) x ${item.qty} = ${total} ฿\n`;
+            });
+
+            msg += `----------------------------\n`;
+            msg += `💰 *ยอดสินค้า: ${subtotal.toLocaleString()} ฿*\n`;
+
+            if (subtotal >= 1000) {
+                msg += `🛵 *ค่าส่ง: ฟรี! (โปรโมชั่น)*\n`;
+                msg += `💵 *ยอดโอนสุทธิ: ${subtotal.toLocaleString()} ฿*\n`;
+            } else {
+                msg += `🛵 *ค่าส่ง: เก็บปลายทาง (ตามระยะทาง)*\n`;
+                msg += `💵 *ยอดชำระค่าสินค้า: ${subtotal.toLocaleString()} ฿*\n`;
+                msg += `(ค่าส่งจ่ายแยกกับไรเดอร์)\n`;
+            }
+
+            msg += `\n📍 *ข้อมูลจัดส่ง*\n`;
+            msg += `ชื่อ: ${name}\n`;
+            msg += `โทร: ${phone}\n`;
+            msg += `ที่อยู่: ${address}\n`;
+            if (map) msg += `แผนที่: ${map}\n`;
+
+            // Encode and open LINE
+            const encoded = encodeURIComponent(msg);
+
+            // TODO: ใส่ Line ID ของร้านค้าตรงนี้ (ต้องมี @ นำหน้า)
+            // ตัวอย่าง: const lineId = "@gunsha"; 
+            const lineId = "@059rkyoa";
+
+            // ใช้ oaMessage เพื่อเปิดหน้าแชทของร้านค้าโดยตรง
+            window.location.href = `https://line.me/R/oaMessage/${lineId}/?${encoded}`;
+        }
+
+        // --- INIT ---
+        document.addEventListener("DOMContentLoaded", () => {
+            renderProducts();
+
+            document.getElementById("searchInput").addEventListener("input", (e) => {
+                renderProducts(e.target.value);
+            });
+        });
+
+    </script>
+</body>
+
+</html>
