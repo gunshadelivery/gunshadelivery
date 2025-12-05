@@ -183,6 +183,26 @@
         </div>
     </div>
 
+    <!-- THANK YOU MODAL -->
+    <div id="thankYouModal"
+        class="fixed inset-0 z-[70] bg-white hidden flex-col items-center justify-center text-center p-6">
+        <div class="mb-6 bg-green-100 p-6 rounded-full animate-bounce">
+            <svg class="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-800 mb-2">ได้รับคำสั่งซื้อแล้ว!</h2>
+        <p class="text-slate-500 mb-8">ระบบกำลังนำคุณไปยัง LINE เพื่อส่งรายการ...</p>
+
+        <div class="animate-pulse text-sm text-emerald-600 font-medium mb-8">
+            กำลังเปิด LINE...
+        </div>
+
+        <button onclick="closeThankYou()" class="text-slate-400 text-sm underline">
+            ปิดหน้านี้
+        </button>
+    </div>
+
     <script>
         // --- DATA ---
         const products = [
@@ -461,6 +481,20 @@
             toggleCart(); // Re-open cart
         }
 
+        // --- THANK YOU MODAL ---
+        function showThankYou() {
+            hideCheckoutForm();
+            const modal = document.getElementById("thankYouModal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function closeThankYou() {
+            const modal = document.getElementById("thankYouModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
         function submitOrder() {
             const form = document.getElementById("orderForm");
             if (!form.checkValidity()) {
@@ -502,15 +536,18 @@
             msg += `ที่อยู่: ${address}\n`;
             if (map) msg += `แผนที่: ${map}\n`;
 
-            // Encode and open LINE
-            const encoded = encodeURIComponent(msg);
+            // Clear Cart & Show Thank You
+            cart = [];
+            updateCartUI();
+            showThankYou();
 
-            // TODO: ใส่ Line ID ของร้านค้าตรงนี้ (ต้องมี @ นำหน้า)
-            // ตัวอย่าง: const lineId = "@gunsha"; 
+            // Encode and open LINE after delay
+            const encoded = encodeURIComponent(msg);
             const lineId = "@059rkyoa";
 
-            // ใช้ oaMessage เพื่อเปิดหน้าแชทของร้านค้าโดยตรง
-            window.location.href = `https://line.me/R/oaMessage/${lineId}/?${encoded}`;
+            setTimeout(() => {
+                window.location.href = `https://line.me/R/oaMessage/${lineId}/?${encoded}`;
+            }, 1500);
         }
 
         // --- INIT ---
