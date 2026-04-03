@@ -176,7 +176,7 @@
                 <div class="mb-5 text-center bg-white p-3 rounded-lg border border-blue-200">
                     <p class="text-xs text-blue-600 mb-2 font-medium">✨ สแกน QR Code ด้านล่างนี้<br>(สามารถบันทึกหน้าจอไปสแกนได้เลย)</p>
                     <div class="bg-white p-2 rounded-md inline-block border shadow-sm mx-auto max-w-[150px]">
-                        <img src="image/qr-code.jpg" alt="QR Code" class="w-full h-auto rounded-md" onerror="this.style.display='none'" />
+                        <img src="qr-code.jpg" alt="QR Code" class="w-full h-auto rounded-md" onerror="this.style.display='none'" />
                     </div>
                 </div>
 
@@ -309,14 +309,16 @@
                 const hue = Math.floor(Math.random() * 360);
 
                 const safeName = p.name.replace(/\s*\(.*?\)\s*/g, '').trim().replace(/[^a-zA-Z0-9]/g, '-');
-                const defaultImage = `image/${safeName}.jpg`;
+                const defaultImage = `${safeName}.jpg`;
                 
                 let imageSrc = defaultImage;
                 if (p.image) {
-                    if (p.image.startsWith('http') || p.image.startsWith('image/')) {
+                    if (p.image.startsWith('http')) {
                         imageSrc = p.image;
+                    } else if (p.image.startsWith('image/')) {
+                        imageSrc = p.image.replace('image/', '');
                     } else {
-                        imageSrc = `image/${p.image}`;
+                        imageSrc = p.image;
                     }
                 }
 
