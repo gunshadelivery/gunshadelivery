@@ -1,0 +1,23 @@
+{
+  "name": "gunshadelivery",
+  "version": "1.0.0",
+  "description": "Gunsha Cannabis Online Ordering",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "vite": "^5.2.11"
+  },
+  "dependencies": {
+    "papaparse": "^5.4.1"
+  }
+}
