@@ -126,6 +126,7 @@
                                 <th class="px-6 py-4">ขนาดที่มี</th>
                                 <th class="px-6 py-4">ราคาเริ่มต้น</th>
                                 <th class="px-6 py-4">สถานะ</th>
+                                <th class="px-6 py-4 text-right">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="productTableBody" class="divide-y divide-slate-50"></tbody>
@@ -139,7 +140,7 @@
     <div id="productModal" class="fixed inset-0 z-[110] bg-black/50 hidden backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="p-6 border-b flex justify-between items-center bg-slate-50">
-                <h3 class="font-bold text-lg">เพิ่มสินค้าใหม่</h3>
+                <h3 id="modalTitle" class="font-bold text-lg">เพิ่มสินค้าใหม่</h3>
                 <button onclick="toggleProductModal(false)" class="p-2 hover:bg-slate-200 rounded-full">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
@@ -156,8 +157,11 @@
                         <label class="block text-sm font-bold text-slate-700 mb-2">ตัวเลือกขนาดและราคา *</label>
                         <div id="variantContainer" class="space-y-3">
                             <!-- Variant Row Template -->
-                            <div class="variant-row flex gap-2 animate-in fade-in slide-in-from-top-1">
-                                <input type="text" placeholder="ขนาด (เช่น 10G)" class="v-size flex-1 border rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none">
+                            <div class="variant-row flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                                <div class="relative flex-1">
+                                    <input type="number" step="0.1" placeholder="น้ำหนัก" class="v-size w-full border rounded-xl pl-3 pr-8 py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none">
+                                    <span class="absolute right-3 top-2 text-slate-400 text-sm font-bold">G</span>
+                                </div>
                                 <input type="number" placeholder="ราคา (฿)" class="v-price w-24 border rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none">
                                 <button type="button" onclick="removeVariant(this)" class="p-2 text-red-400 hover:text-red-600">
                                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
@@ -185,7 +189,7 @@
                 </form>
             </div>
             <div class="p-6 border-t bg-slate-50">
-                <button id="saveProductBtn" onclick="saveNewProduct()" class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2">
+                <button id="saveProductBtn" onclick="saveProduct()" class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2">
                     บันทึกและขึ้นขายทันที
                 </button>
             </div>
@@ -196,18 +200,25 @@
         const MASTER_PASS = "gunsha888";
         const ORDERS_CSV_URL = "https://docs.google.com/spreadsheets/d/1rczsaPil58aAm_kw1FdhopdJA0U6v6x2ELROaupP09g/export?format=csv&gid=1214202779";
         const PRODUCTS_CSV_URL = "https://docs.google.com/spreadsheets/d/1rczsaPil58aAm_kw1FdhopdJA0U6v6x2ELROaupP09g/gviz/tq?tqx=out:csv";
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbx-bFdAzLgUst21PNyQ0Tu7_8dEjzqyikuSSemJCVjM4y_cJYpVJSWHooGZDdwtHOQ0Yg/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzZHV5tAWeWmPGq9cI84I3RwpnrtdimMbdpMjXo0yQ-eemH4vZiz6hKoIyhk-1nuFc4ZA/exec";
         
         let rawOrders = [];
         let rawProducts = [];
         let salesChart = null;
+        let isEditMode = false;
+        let originalVariants = []; // To track for deletion when updating variants
+        let oldProductName = "";
 
         // --- VARIANT MANAGEMENT ---
         function addVariant(size="", price="") {
+            const cleanSize = size.replace('G', '');
             const row = document.createElement('div');
-            row.className = 'variant-row flex gap-2 animate-in fade-in slide-in-from-top-1';
+            row.className = 'variant-row flex items-center gap-2 animate-in fade-in slide-in-from-top-1';
             row.innerHTML = `
-                <input type="text" placeholder="ขนาด (เช่น 10G)" value="${size}" class="v-size flex-1 border rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none">
+                <div class="relative flex-1">
+                    <input type="number" step="0.1" placeholder="น้ำหนัก" value="${cleanSize}" class="v-size w-full border rounded-xl pl-3 pr-8 py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none">
+                    <span class="absolute right-3 top-2 text-slate-400 text-sm font-bold">G</span>
+                </div>
                 <input type="number" placeholder="ราคา (฿)" value="${price}" class="v-price w-24 border rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none">
                 <button type="button" onclick="removeVariant(this)" class="p-2 text-red-400 hover:text-red-600">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
@@ -371,13 +382,67 @@
                     <td class="px-6 py-3 text-slate-500 text-xs">${p.sizes.join(', ')}</td>
                     <td class="px-6 py-3 font-bold text-emerald-600">${p.minPrice.toLocaleString()} ฿ +</td>
                     <td class="px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${['หมด','0','sold out'].includes(p.status?.toLowerCase())?'bg-red-100 text-red-600':'bg-emerald-100 text-emerald-600'}">${p.status || 'มีของ'}</span></td>
+                    <td class="px-6 py-3 text-right">
+                        <button onclick="editProduct('${p.name.replace(/'/g, "\\'")}')" class="p-2 text-slate-400 hover:text-emerald-600 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button onclick="deleteFullProduct('${p.name.replace(/'/g, "\\'")}')" class="p-2 text-slate-400 hover:text-red-500 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
                 </tr>`;
             });
         }
 
-        function toggleProductModal(show) { document.getElementById('productModal').classList.toggle('hidden', !show); }
+        function toggleProductModal(show, mode = 'add') { 
+            const modal = document.getElementById('productModal');
+            const title = document.getElementById('modalTitle');
+            const btn = document.getElementById('saveProductBtn');
+            
+            isEditMode = mode === 'edit';
+            title.innerText = isEditMode ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่";
+            btn.innerText = isEditMode ? "บันทึกการแก้ไข" : "บันทึกและขึ้นขายทันที";
 
-        async function saveNewProduct() {
+            if(!show) {
+                document.getElementById('productForm').reset();
+                document.getElementById('variantContainer').innerHTML = "";
+                addVariant(); // Default row
+            }
+            modal.classList.toggle('hidden', !show); 
+        }
+
+        function editProduct(name) {
+            const variants = rawProducts.filter(p => p.name === name);
+            if(variants.length === 0) return;
+
+            const base = variants[0];
+            oldProductName = name;
+            originalVariants = variants.map(v => ({ size: v.size, price: v.price }));
+
+            document.getElementById('pName').value = base.name;
+            document.getElementById('pNote').value = base.note || "";
+            document.getElementById('pTags').value = base.tags || "";
+            // We don't pre-fill file input, but we can store existing image URL
+            document.getElementById('productForm').dataset.existingImage = base.image || "";
+
+            const container = document.getElementById('variantContainer');
+            container.innerHTML = "";
+            variants.forEach(v => addVariant(v.size, v.price));
+
+            toggleProductModal(true, 'edit');
+        }
+
+        async function deleteFullProduct(name) {
+            if(!confirm(`ต้องการลบสินค้า "${name}" ทั้งหมดใช่หรือไม่?`)) return;
+            const variants = rawProducts.filter(p => p.name === name);
+            for(let v of variants) {
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "deleteProduct", name: v.name, size: v.size }) });
+            }
+            alert("ลบสินค้าเรียบร้อย");
+            loadProducts();
+        }
+
+        async function saveProduct() {
             const btn = document.getElementById('saveProductBtn');
             const fileInput = document.getElementById('pImage');
             const name = document.getElementById('pName').value;
@@ -385,18 +450,21 @@
             const tags = document.getElementById('pTags').value;
             
             const variantRows = document.querySelectorAll('.variant-row');
-            const variants = Array.from(variantRows).map(row => ({
-                size: row.querySelector('.v-size').value,
-                price: row.querySelector('.v-price').value
-            })).filter(v => v.size && v.price);
+            const variants = Array.from(variantRows).map(row => {
+                let sizeVal = row.querySelector('.v-size').value;
+                if(sizeVal && !sizeVal.endsWith('G')) sizeVal += 'G';
+                return {
+                    size: sizeVal,
+                    price: row.querySelector('.v-price').value
+                };
+            }).filter(v => v.size && v.price && v.size !== 'G');
 
-            if(!name || variants.length === 0) return alert("กรุณากรอกข้อมูลที่สำคัญให้ครบ (ชื่อ และ อย่างน้อย 1 ขนาด/ราคา)");
+            if(!name || variants.length === 0) return alert("กรุณากรอกข้อมูลที่สำคัญให้ครบ");
 
             btn.disabled = true;
-            btn.innerHTML = "กำลังอัปโหลดรูป...";
+            btn.innerHTML = isEditMode ? "กำลังบันทึก..." : "กำลังอัปโหลดรูป...";
 
-            let imageUrl = "";
-            // 1. Upload image if exists
+            let imageUrl = document.getElementById('productForm').dataset.existingImage || "";
             if (fileInput.files.length > 0) {
                 try {
                     const formData = new FormData();
@@ -407,27 +475,32 @@
                 } catch(e) { console.error("Img Upload Fail", e); }
             }
 
-            btn.innerHTML = `กำลังบันทึก ${variants.length} รายการ...`;
-
-            // 2. Save each variant to GAS
             try {
+                if(isEditMode) {
+                    // Update Logic: Delete old variants that are no longer present, or update existing
+                    // Simple approach for GAS: Delete all old variants and add new ones (cleaner)
+                    for(let oldV of originalVariants) {
+                        await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "deleteProduct", name: oldProductName, size: oldV.size }) });
+                    }
+                }
+
                 for(let variant of variants) {
                     const payload = {
-                        action: "addProduct",
+                        action: "addProduct", // Re-use addProduct after clearing old ones
                         name, note, tags, image: imageUrl, status: "มีของ",
                         size: variant.size, price: variant.price
                     };
                     await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
                 }
-                alert("เพิ่มสินค้าและตัวเลือกสำเร็จ!");
+
+                alert(isEditMode ? "แก้ไขข้อมูลสำเร็จ!" : "เพิ่มสินค้าสำเร็จ!");
                 toggleProductModal(false);
-                document.getElementById('productForm').reset();
-                switchTab('products');
+                loadProducts();
             } catch (err) {
-                alert("เกิดข้อผิดพลาดในการบันทึก");
+                alert("เกิดข้อผิดพลาด");
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = "บันทึกและขึ้นขายทันที";
+                btn.innerHTML = isEditMode ? "บันทึกการแก้ไข" : "บันทึกและขึ้นขายทันที";
             }
         }
     </script>

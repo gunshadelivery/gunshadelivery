@@ -27,30 +27,29 @@ function doPost(e) {
         contents.slipUrl,
         "รอดำเนินการ"
       ]);
-      return ContentService.createTextOutput(JSON.stringify({"result": "success"}))
+      return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
         .setMimeType(ContentService.MimeType.JSON);
-    } 
-    
+    }
+
     // --- CASE 2: Update existing order status ---
     if (action === "updateStatus") {
       var data = sheetOrders.getDataRange().getValues();
       var name = contents.name;
       var slipUrl = contents.slipUrl;
-      
+
       for (var i = 1; i < data.length; i++) {
         if (data[i][1] == name && data[i][7] == slipUrl) {
           sheetOrders.getRange(i + 1, 9).setValue(contents.status);
-          return ContentService.createTextOutput(JSON.stringify({"result": "success"}))
+          return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
             .setMimeType(ContentService.MimeType.JSON);
         }
       }
-      return ContentService.createTextOutput(JSON.stringify({"result": "not found"}))
+      return ContentService.createTextOutput(JSON.stringify({ "result": "not found" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
     // --- CASE 3: Add new product ---
     if (action === "addProduct") {
-      // Append raw product data: name, size, price, note, image, tags, status
       sheetProducts.appendRow([
         contents.name,
         contents.size,
@@ -60,12 +59,47 @@ function doPost(e) {
         contents.tags,
         contents.status || "มีของ"
       ]);
-      return ContentService.createTextOutput(JSON.stringify({"result": "success"}))
+      return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    // --- CASE 4: Update product ---
+    if (action === "updateProduct") {
+      var data = sheetProducts.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        // Unique key: Name + Size
+        if (data[i][0] == contents.oldName && data[i][1] == contents.oldSize) {
+          sheetProducts.getRange(i + 1, 1, 1, 7).setValues([[
+            contents.name,
+            contents.size,
+            contents.price,
+            contents.note,
+            contents.image,
+            contents.tags,
+            contents.status
+          ]]);
+          return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
+            .setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ "result": "not found" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // --- CASE 5: Delete product ---
+    if (action === "deleteProduct") {
+      var data = sheetProducts.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][0] == contents.name && data[i][1] == contents.size) {
+          sheetProducts.deleteRow(i + 1);
+          return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
+            .setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+    }
+
   } catch (f) {
-    return ContentService.createTextOutput(JSON.stringify({"result": "error", "error": f.toString()}))
+    return ContentService.createTextOutput(JSON.stringify({ "result": "error", "error": f.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
