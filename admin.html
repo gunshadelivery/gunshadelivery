@@ -123,8 +123,8 @@
                             <tr>
                                 <th class="px-6 py-4">รูปภาพ</th>
                                 <th class="px-6 py-4">ชื่อสินค้า</th>
-                                <th class="px-6 py-4">ขนาด</th>
-                                <th class="px-6 py-4">ราคา</th>
+                                <th class="px-6 py-4">ขนาดที่มี</th>
+                                <th class="px-6 py-4">ราคาเริ่มต้น</th>
                                 <th class="px-6 py-4">สถานะ</th>
                             </tr>
                         </thead>
@@ -144,22 +144,32 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <div class="p-6 overflow-y-auto space-y-4">
+            <div class="p-6 overflow-y-auto space-y-5">
                 <form id="productForm" class="space-y-4">
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">ชื่อสายพันธุ์ *</label>
                         <input type="text" id="pName" required class="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="เช่น Ice Cream Cake">
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">ราคา (บาท) *</label>
-                            <input type="number" id="pPrice" required class="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="350">
+                    
+                    <!-- VARIANT CONTAINER -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">ตัวเลือกขนาดและราคา *</label>
+                        <div id="variantContainer" class="space-y-3">
+                            <!-- Variant Row Template -->
+                            <div class="variant-row flex gap-2 animate-in fade-in slide-in-from-top-1">
+                                <input type="text" placeholder="ขนาด (เช่น 10G)" class="v-size flex-1 border rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none">
+                                <input type="number" placeholder="ราคา (฿)" class="v-price w-24 border rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none">
+                                <button type="button" onclick="removeVariant(this)" class="p-2 text-red-400 hover:text-red-600">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">ขนาด (G) *</label>
-                            <input type="text" id="pSize" required class="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="1G">
-                        </div>
+                        <button type="button" onclick="addVariant()" class="mt-2 text-xs font-bold text-emerald-600 flex items-center gap-1 hover:text-emerald-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            เพิ่มตัวเลือกราคา/ขนาด
+                        </button>
                     </div>
+
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">คำอธิบายสั้นๆ</label>
                         <input type="text" id="pNote" class="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="เช่น Indica 60% กลิ่นหวาน...">
@@ -192,6 +202,24 @@
         let rawProducts = [];
         let salesChart = null;
 
+        // --- VARIANT MANAGEMENT ---
+        function addVariant(size="", price="") {
+            const row = document.createElement('div');
+            row.className = 'variant-row flex gap-2 animate-in fade-in slide-in-from-top-1';
+            row.innerHTML = `
+                <input type="text" placeholder="ขนาด (เช่น 10G)" value="${size}" class="v-size flex-1 border rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none">
+                <input type="number" placeholder="ราคา (฿)" value="${price}" class="v-price w-24 border rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none">
+                <button type="button" onclick="removeVariant(this)" class="p-2 text-red-400 hover:text-red-600">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                </button>`;
+            document.getElementById('variantContainer').appendChild(row);
+        }
+        function removeVariant(btn) {
+            const rows = document.querySelectorAll('.variant-row');
+            if (rows.length > 1) btn.closest('.variant-row').remove();
+            else alert("ต้องมีอย่างน้อยหนึ่งตัวเลือกราคา");
+        }
+
         // --- TAB SYSTEM ---
         function switchTab(tabId) {
             document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
@@ -199,7 +227,7 @@
             
             document.querySelectorAll('header button').forEach(b => b.classList.remove('bg-white', 'shadow-sm', 'text-emerald-600'));
             const activeBtn = document.getElementById('tab-' + tabId);
-            activeBtn.classList.add('bg-white', 'shadow-sm', 'text-emerald-600');
+            if(activeBtn) activeBtn.classList.add('bg-white', 'shadow-sm', 'text-emerald-600');
 
             if (tabId === 'products') loadProducts();
             else loadData();
@@ -318,19 +346,30 @@
         function loadProducts() {
             Papa.parse(PRODUCTS_CSV_URL + "&t=" + Date.now(), {
                 download: true, header: true, skipEmptyLines: true,
-                complete: (results) => { rawProducts = results.data; renderProductsTable(); }
+                complete: (results) => { 
+                    rawProducts = results.data; 
+                    renderProductsTable(); 
+                }
             });
         }
 
         function renderProductsTable() {
             const body = document.getElementById('productTableBody'); body.innerHTML = "";
+            // Group by name for listing
+            const grouped = {};
             rawProducts.forEach(p => {
                 if(!p.name) return;
+                if(!grouped[p.name]) grouped[p.name] = { ...p, sizes: [], minPrice: Infinity };
+                grouped[p.name].sizes.push(p.size);
+                grouped[p.name].minPrice = Math.min(grouped[p.name].minPrice, parseFloat(p.price) || 0);
+            });
+
+            Object.values(grouped).forEach(p => {
                 body.innerHTML += `<tr>
                     <td class="px-6 py-3"><img src="${p.image}" class="w-10 h-10 object-cover rounded-lg bg-slate-100" onerror="this.src='https://via.placeholder.com/40?text=🌿'"></td>
                     <td class="px-6 py-3 font-bold">${p.name}</td>
-                    <td class="px-6 py-3 text-slate-500">${p.size}</td>
-                    <td class="px-6 py-3 font-bold text-emerald-600">${p.price} ฿</td>
+                    <td class="px-6 py-3 text-slate-500 text-xs">${p.sizes.join(', ')}</td>
+                    <td class="px-6 py-3 font-bold text-emerald-600">${p.minPrice.toLocaleString()} ฿ +</td>
                     <td class="px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${['หมด','0','sold out'].includes(p.status?.toLowerCase())?'bg-red-100 text-red-600':'bg-emerald-100 text-emerald-600'}">${p.status || 'มีของ'}</span></td>
                 </tr>`;
             });
@@ -341,42 +380,49 @@
         async function saveNewProduct() {
             const btn = document.getElementById('saveProductBtn');
             const fileInput = document.getElementById('pImage');
-            const data = {
-                action: "addProduct",
-                name: document.getElementById('pName').value,
-                price: document.getElementById('pPrice').value,
-                size: document.getElementById('pSize').value,
-                note: document.getElementById('pNote').value,
-                tags: document.getElementById('pTags').value,
-                image: "",
-                status: "มีของ"
-            };
+            const name = document.getElementById('pName').value;
+            const note = document.getElementById('pNote').value;
+            const tags = document.getElementById('pTags').value;
+            
+            const variantRows = document.querySelectorAll('.variant-row');
+            const variants = Array.from(variantRows).map(row => ({
+                size: row.querySelector('.v-size').value,
+                price: row.querySelector('.v-price').value
+            })).filter(v => v.size && v.price);
 
-            if(!data.name || !data.price || !data.size) return alert("กรุณากรอกข้อมูลที่สำคัญให้ครบ (ชื่อ, ราคา, ขนาด)");
+            if(!name || variants.length === 0) return alert("กรุณากรอกข้อมูลที่สำคัญให้ครบ (ชื่อ และ อย่างน้อย 1 ขนาด/ราคา)");
 
             btn.disabled = true;
-            btn.innerHTML = "กำลังบันทึก...";
+            btn.innerHTML = "กำลังอัปโหลดรูป...";
 
+            let imageUrl = "";
             // 1. Upload image if exists
             if (fileInput.files.length > 0) {
-                const formData = new FormData();
-                formData.append('image', fileInput.files[0]);
-                const imgRes = await fetch(`https://api.imgbb.com/1/upload?key=467157500c7b535f4c9839accf416565`, { method: 'POST', body: formData });
-                const imgData = await imgRes.json();
-                if (imgData.success) data.image = imgData.data.url;
+                try {
+                    const formData = new FormData();
+                    formData.append('image', fileInput.files[0]);
+                    const imgRes = await fetch(`https://api.imgbb.com/1/upload?key=467157500c7b535f4c9839accf416565`, { method: 'POST', body: formData });
+                    const imgData = await imgRes.json();
+                    if (imgData.success) imageUrl = imgData.data.url;
+                } catch(e) { console.error("Img Upload Fail", e); }
             }
 
-            // 2. Save to GAS
+            btn.innerHTML = `กำลังบันทึก ${variants.length} รายการ...`;
+
+            // 2. Save each variant to GAS
             try {
-                await fetch(GAS_URL, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    body: JSON.stringify(data)
-                });
-                alert("เพิ่มสินค้าสำเร็จ! สินค้าจะปรากฏหน้าร้านภายใน 5-10 วินาที");
+                for(let variant of variants) {
+                    const payload = {
+                        action: "addProduct",
+                        name, note, tags, image: imageUrl, status: "มีของ",
+                        size: variant.size, price: variant.price
+                    };
+                    await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                }
+                alert("เพิ่มสินค้าและตัวเลือกสำเร็จ!");
                 toggleProductModal(false);
                 document.getElementById('productForm').reset();
-                setTimeout(loadProducts, 5000);
+                switchTab('products');
             } catch (err) {
                 alert("เกิดข้อผิดพลาดในการบันทึก");
             } finally {
