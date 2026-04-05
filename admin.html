@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ฝ่ายบริหาร - Gunsha Delivery 🌿</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+    <!-- LOGIN OVERLAY -->
+    <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-emerald-900/40 backdrop-blur-md">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
+            <div class="text-4xl mb-4">🔐</div>
+            <h2 class="text-2xl font-bold mb-6 text-slate-800">เข้าสู่ระบบหลังบ้าน</h2>
+            <input type="password" id="passInput" placeholder="รหัสผ่าน..." 
+                class="w-full px-4 py-3 border rounded-xl mb-4 focus:ring-2 focus:ring-emerald-500 outline-none text-center text-lg">
+            <button onclick="checkPass()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg">ยืนยัน</button>
+            <p id="errorMsg" class="text-red-500 text-sm mt-3 hidden">รหัสผ่านไม่ถูกต้อง!</p>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="dashboard" class="hidden">
+        <!-- HEADER -->
+        <header class="bg-white border-b sticky top-0 z-40">
+            <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl cursor-pointer" onclick="location.href='index.html'">🌿</span>
+                    <h1 class="text-xl font-bold text-slate-800">Admin Dashboard</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span id="updateTime" class="text-xs text-slate-400 font-medium">อัปเดตล่าสุด: กำลังโหลด...</span>
+                    <button onclick="logout()" class="text-slate-500 hover:text-red-500 transition text-sm">ออกจากระบบ</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+            
+            <!-- SUMMARY CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Monthly Sales -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 text-emerald-50 opacity-50 text-8xl font-bold">฿</div>
+                    <p class="text-slate-500 text-sm font-medium mb-1">รายได้เดือนนี้ (เฉพาะที่ยืนยันแล้ว)</p>
+                    <h2 id="monthlyTotal" class="text-3xl font-extrabold text-emerald-600">0.00 ฿</h2>
+                    <p id="monthlyCount" class="text-xs text-slate-400 mt-2">จากทั้งหมด 0 ออเดอร์</p>
+                </div>
+                <!-- Weekly Sales -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 text-blue-50 opacity-50 text-8xl font-bold">📅</div>
+                    <p class="text-slate-500 text-sm font-medium mb-1">รายได้สัปดาห์นี้ (เฉพาะที่ยืนยันแล้ว)</p>
+                    <h2 id="weeklyTotal" class="text-3xl font-extrabold text-blue-600">0.00 ฿</h2>
+                    <p id="weeklyCount" class="text-xs text-slate-400 mt-2">จากทั้งหมด 0 ออเดอร์</p>
+                </div>
+                <!-- Average Order -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 text-orange-50 opacity-50 text-8xl font-bold">✨</div>
+                    <p class="text-slate-500 text-sm font-medium mb-1">ยอดเฉลี่ยต่อออเดอร์</p>
+                    <h2 id="avgOrder" class="text-3xl font-extrabold text-orange-500">0.00 ฿</h2>
+                    <p id="totalLifetime" class="text-xs text-slate-400 mt-2">ยอดรวมตั้งแต่เริ่มต้น 0 ฿</p>
+                </div>
+            </div>
+
+            <!-- TREND & CHARTS -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Sales Trend -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                        แนวโน้มยอดขายที่ได้รับเงินจริง (14 วันล่าสุด)
+                    </h3>
+                    <div class="h-64">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+                <!-- Top Products -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                        สายพันธุ์ยอดนิยม (จากออเดอร์ที่ยืนยัน)
+                    </h3>
+                    <div id="topProductsList" class="space-y-4">
+                        <div class="animate-pulse text-slate-300">กำลังโหลด...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RECENT ORDERS -->
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b flex justify-between items-center bg-slate-50/50">
+                    <div>
+                        <h3 class="font-bold text-slate-800">จัดการออเดอร์</h3>
+                        <p class="text-xs text-slate-400">กรุณากด "ยืนยันรับชำระ" เมื่อได้รับเงินจริง เพื่อให้ยอดในรายงานถูกต้อง</p>
+                    </div>
+                    <button onclick="loadData()" class="bg-white border px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm">รีเฟรชข้อมูล</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-medium">
+                            <tr>
+                                <th class="px-6 py-4">วันที่/เวลา</th>
+                                <th class="px-6 py-4">ลูกค้า</th>
+                                <th class="px-6 py-4">รายการ</th>
+                                <th class="px-6 py-4">ยอดรวม</th>
+                                <th class="px-6 py-4">สถานะ</th>
+                                <th class="px-6 py-4">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTableBody" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+                <div id="noDataMsg" class="p-12 text-center text-slate-400 hidden">ไม่มีข้อมูลออเดอร์</div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const MASTER_PASS = "gunsha888";
+        const ORDERS_CSV_URL = "https://docs.google.com/spreadsheets/d/1rczsaPil58aAm_kw1FdhopdJA0U6v6x2ELROaupP09g/export?format=csv&gid=1214202779";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyreeFHFhFu4L9yjrD2fW8H991_3K_eAl9vjF7K9i_Ar3_mkhwECv9SLLkBN1_ATWDfDw/exec";
+        
+        let rawOrders = [];
+        let salesChart = null;
+
+        function checkPass() {
+            const input = document.getElementById('passInput').value;
+            if (input === MASTER_PASS) {
+                localStorage.setItem('adminAuth', 'true');
+                showDashboard();
+            } else {
+                document.getElementById('errorMsg').classList.remove('hidden');
+                setTimeout(() => document.getElementById('errorMsg').classList.add('hidden'), 2000);
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            loadData();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminAuth');
+            location.reload();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('adminAuth') === 'true') showDashboard();
+            document.getElementById('passInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPass(); });
+        });
+
+        function loadData() {
+            const updateTime = document.getElementById('updateTime');
+            updateTime.textContent = "กำลังโหลด...";
+
+            Papa.parse(ORDERS_CSV_URL + "&t=" + Date.now(), {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    rawOrders = results.data;
+                    processData();
+                    updateTime.textContent = `อัปเดตเมื่อ: ${new Date().toLocaleTimeString('th-TH')}`;
+                }
+            });
+        }
+
+        function processData() {
+            if (rawOrders.length === 0) {
+                document.getElementById('noDataMsg').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('noDataMsg').classList.add('hidden');
+
+            const now = new Date();
+            const oneWeekAgo = new Date(); oneWeekAgo.setDate(now.getDate() - 7);
+            const oneMonthAgo = new Date(); oneMonthAgo.setDate(now.getDate() - 30);
+
+            let totalLife = 0, totalMonth = 0, totalWeek = 0;
+            let countMonth = 0, countWeek = 0;
+            const productCounts = {}, dailyStats = {};
+
+            rawOrders.forEach(order => {
+                const orderDate = new Date(order["วันที่-เวลา"]);
+                const total = parseFloat(order["ยอดรวม"]) || 0;
+                const isConfirmed = order["สถานะ"] === "ชำระเงินแล้ว";
+                
+                if (isConfirmed) {
+                    totalLife += total;
+                    if (orderDate >= oneMonthAgo) { totalMonth += total; countMonth++; }
+                    if (orderDate >= oneWeekAgo) { totalWeek += total; countWeek++; }
+
+                    const dateKey = orderDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+                    const fourteenDaysAgo = new Date(); fourteenDaysAgo.setDate(now.getDate() - 14);
+                    if (orderDate >= fourteenDaysAgo) { dailyStats[dateKey] = (dailyStats[dateKey] || 0) + total; }
+
+                    if (order["รายการสินค้า"]) {
+                        order["รายการสินค้า"].split(',').forEach(item => {
+                            const name = item.split('(')[0].trim();
+                            productCounts[name] = (productCounts[name] || 0) + 1;
+                        });
+                    }
+                }
+            });
+
+            document.getElementById('monthlyTotal').textContent = totalMonth.toLocaleString() + " ฿";
+            document.getElementById('monthlyCount').textContent = `จาก ${countMonth} รายการที่ยืนยัน`;
+            document.getElementById('weeklyTotal').textContent = totalWeek.toLocaleString() + " ฿";
+            document.getElementById('weeklyCount').textContent = `จาก ${countWeek} รายการที่ยืนยัน`;
+            document.getElementById('avgOrder').textContent = (countMonth > 0 ? (totalMonth / countMonth).toFixed(2) : 0) + " ฿";
+            document.getElementById('totalLifetime').textContent = `รวมทั้งหมด ${totalLife.toLocaleString()} ฿`;
+
+            renderChart(dailyStats);
+            renderTopProducts(productCounts);
+            renderTable();
+        }
+
+        function renderChart(dataMap) {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            const labels = [], values = [];
+            for (let i = 13; i >= 0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const key = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+                labels.push(key); values.push(dataMap[key] || 0);
+            }
+            if (salesChart) salesChart.destroy();
+            salesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'ยอดขายรายวัน',
+                        data: values,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+        function renderTopProducts(counts) {
+            const container = document.getElementById('topProductsList');
+            container.innerHTML = "";
+            const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 5);
+            if (sorted.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-sm text-center py-4">ยังไม่มีข้อมูสินค้า</p>`;
+                return;
+            }
+            sorted.forEach(([name, count]) => {
+                container.innerHTML += `
+                    <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">${count}</div>
+                            <span class="font-medium text-slate-700 text-sm">${name}</span>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function renderTable() {
+            const body = document.getElementById('orderTableBody');
+            body.innerHTML = "";
+            [...rawOrders].reverse().slice(0, 30).forEach(order => {
+                const isConfirmed = order["สถานะ"] === "ชำระเงินแล้ว";
+                body.innerHTML += `
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-4 text-xs text-slate-500">${order["วันที่-เวลา"].replace('GMT+0700 (Indochina Time)', '')}</td>
+                        <td class="px-6 py-4 font-bold text-slate-700 text-sm">${order["ชื่อลูกค้า"]}</td>
+                        <td class="px-6 py-4 text-xs text-slate-500 max-w-[150px] truncate">${order["รายการสินค้า"]}</td>
+                        <td class="px-6 py-4 font-bold text-emerald-600">${parseFloat(order["ยอดรวม"]).toLocaleString()} ฿</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${isConfirmed ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700 animate-pulse'}">
+                                ${order["สถานะ"] || "รอดำเนินการ"}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex gap-2">
+                                <a href="${order["ลิงก์สลิป"]}" target="_blank" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg title="ดูสลิป">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                </a>
+                                ${!isConfirmed ? `
+                                <button onclick="updateConfirm('${order["ชื่อลูกค้า"]}', '${order["ลิงก์สลิป"]}')" 
+                                    class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="ยืนยันรับเงิน">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </button>` : ''}
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        async function updateConfirm(name, slipUrl) {
+            if(!confirm(`ยืนยันออเดอร์ของ ${name} ว่าชำระเงินเรียบร้อยแล้ว?`)) return;
+            
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        action: "updateStatus",
+                        name: name,
+                        slipUrl: slipUrl,
+                        status: "ชำระเงินแล้ว"
+                    })
+                });
+                alert("ยืนยันออเดอร์สำเร็จ! กรุณารอสักครู่เพื่อให้ Google Sheets อัปเดตข้อมูล (ประมาณ 10-15 วินาที)");
+                setTimeout(loadData, 5000);
+            } catch (err) {
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            }
+        }
+    </script>
+</body>
+</html>
