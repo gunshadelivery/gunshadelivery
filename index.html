@@ -35,6 +35,10 @@
         .category-tab { @apply px-4 py-2 rounded-xl text-sm font-bold transition-all border whitespace-nowrap; }
         .category-tab-active { @apply bg-emerald-600 border-emerald-600 text-white shadow-md; }
         .category-tab-inactive { @apply bg-white border-slate-100 text-slate-400 hover:border-emerald-200 hover:text-emerald-500; }
+        
+        /* Image Animations */
+        .img-fade-in { opacity: 0; transition: opacity 0.5s ease-in-out; }
+        .img-loaded { opacity: 1; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 </head>
@@ -391,9 +395,16 @@
                 const variant = p.variants[p.selectedVariantIdx];
                 const isVariantOutOfStock = variant.stock <= 0;
 
+                // Priority loading for top items
+                const priorityAttr = pIdx < 4 ? 'fetchpriority="high"' : 'loading="lazy"';
+
                 card.innerHTML = `
                     <div class="h-32 bg-slate-100 flex items-center justify-center relative overflow-hidden">
-                        <img src="${p.image}" class="w-full h-full object-cover ${isOutOfStock || isVariantOutOfStock ? 'grayscale opacity-75' : ''}" onerror="this.outerHTML='<span class=\\'text-3xl\\'>🌿</span>';" />
+                        <img src="${p.image}" 
+                             ${priorityAttr} 
+                             class="w-full h-full object-cover img-fade-in ${isOutOfStock || isVariantOutOfStock ? 'grayscale opacity-75' : ''}" 
+                             onload="this.classList.add('img-loaded')"
+                             onerror="this.outerHTML='<span class=\\'text-3xl\\'>🌿</span>';" />
                         <div class="absolute top-2 left-2 flex flex-col gap-1">
                             ${p.tags.length ? `<span class="bg-emerald-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm w-fit">${p.tags[0]}</span>` : ''}
                             ${p.totalSold > 0 ? `<span class="bg-orange-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm w-fit">ขายแล้ว ${p.totalSold}+</span>` : ''}
