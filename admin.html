@@ -12,9 +12,34 @@
         body { font-family: 'Kanit', sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
         .tab-active { border-color: #10b981; color: #059669; background-color: #ecfdf5; }
+        
+        /* Toast Styles */
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 350px; }
+        .toast { pointer-events: auto; padding: 12px 20px; border-radius: 20px; color: white; font-weight: 600; font-size: 14px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; }
+        @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast.success { background: #10b981; border: 1px solid #059669; }
+        .toast.error { background: #ef4444; border: 1px solid #dc2626; }
+        .toast.hide { animation: slideOut 0.3s forwards; }
+        @keyframes slideOut { to { transform: translateY(-20px); opacity: 0; } }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
+    <!-- CUSTOM CONFIRM MODAL -->
+    <div id="confirmModal" class="fixed inset-0 z-[200] bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-2xl w-full max-w-xs text-center animate-in zoom-in duration-300">
+            <div class="text-4xl mb-4" id="confirmIcon">⚠️</div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2" id="confirmTitle">ยืนยันการทำรายการ</h3>
+            <p class="text-slate-500 text-sm mb-6" id="confirmMsg">คุณแน่ใจใช่ไหมที่จะดำเนินการต่อ?</p>
+            <div class="flex gap-3">
+                <button id="confirmCancel" class="flex-1 py-3 px-4 rounded-2xl font-bold text-slate-400 hover:bg-slate-50 transition">ยกเลิก</button>
+                <button id="confirmOk" class="flex-1 py-3 px-4 rounded-2xl font-bold bg-emerald-600 text-white shadow-lg hover:bg-emerald-700 transition">ตกลง</button>
+            </div>
+        </div>
+    </div>
 
     <!-- LOGIN OVERLAY -->
     <div id="loginOverlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-emerald-900/40 backdrop-blur-md">
@@ -225,6 +250,44 @@
         let originalVariants = []; // To track for deletion when updating variants
         let oldProductName = "";
 
+        // --- CUSTOM UI: TOAST ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? '✅' : '❌';
+            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('hide');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- CUSTOM UI: CONFIRM MODAL ---
+        function customConfirm(title, message, icon = '⚠️') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirmModal');
+                document.getElementById('confirmTitle').innerText = title;
+                document.getElementById('confirmMsg').innerText = message;
+                document.getElementById('confirmIcon').innerText = icon;
+                modal.classList.remove('hidden');
+
+                const cleanup = (val) => {
+                    modal.classList.add('hidden');
+                    document.getElementById('confirmOk').removeEventListener('click', okHandler);
+                    document.getElementById('confirmCancel').removeEventListener('click', cancelHandler);
+                    resolve(val);
+                };
+
+                const okHandler = () => cleanup(true);
+                const cancelHandler = () => cleanup(false);
+
+                document.getElementById('confirmOk').addEventListener('click', okHandler);
+                document.getElementById('confirmCancel').addEventListener('click', cancelHandler);
+            });
+        }
+
         // --- VARIANT MANAGEMENT ---
         function addVariant(size="", price="", stock=0, sold=0) {
             const cleanSize = size.toString().replace('G', '');
@@ -278,9 +341,11 @@
         function checkPass() {
             if (document.getElementById('passInput').value === MASTER_PASS) {
                 localStorage.setItem('adminAuth', 'true');
+                showToast("เข้าสู่ระบบเรียบร้อย", "success");
                 showDashboard();
             } else {
                 document.getElementById('errorMsg').classList.remove('hidden');
+                showToast("รหัสผ่านผิด!", "error");
             }
         }
         function showDashboard() {
@@ -377,9 +442,10 @@
         }
 
         async function updateConfirm(name, slip) {
-            if(!confirm(`ยืนยันการรับเงินของ ${name}?`)) return;
+            if(!(await customConfirm("ยืนยันออเดอร์", `ต้องการยืนยันการรับเงินของคุณ ${name} ใช่หรือไม่?`, "💰"))) return;
+            showToast("กำลังอัปเดตสถานะ...", "success");
             await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "updateStatus", name, slipUrl: slip, status: "ชำระเงินแล้ว" }) });
-            alert("อัปเดตสถานะเจ้าของแล้ว กรุณารอ 5-10 วินาทีให้ข้อมูลอัปเดต");
+            showToast("อัปเดตเรียบร้อย กรุณารอข้อมูลอัปเดตสักครู่", "success");
             setTimeout(loadData, 5000);
         }
 
@@ -468,12 +534,13 @@
         }
 
         async function deleteFullProduct(name) {
-            if(!confirm(`ต้องการลบสินค้า "${name}" ทั้งหมดใช่หรือไม่?`)) return;
+            if(!(await customConfirm("ลบสินค้า", `คุณแน่ใจใช่ไหมที่จะลบ "${name}" ออกจากระบบถาวร?`, "🗑️"))) return;
+            showToast("กำลังลบข้อมูล...", "success");
             const variants = rawProducts.filter(p => p.name === name);
             for(let v of variants) {
                 await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "deleteProduct", name: v.name, size: v.size }) });
             }
-            alert("ลบสินค้าเรียบร้อย");
+            showToast("ลบสินค้าเรียบร้อยแล้ว", "success");
             loadProducts();
         }
 
@@ -532,11 +599,11 @@
                     await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
                 }
 
-                alert(isEditMode ? "แก้ไขข้อมูลสำเร็จ!" : "เพิ่มสินค้าสำเร็จ!");
+                showToast(isEditMode ? "แก้ไขข้อมูลสำเร็จ!" : "เพิ่มสินค้าสำเร็จ!", "success");
                 toggleProductModal(false);
                 loadProducts();
             } catch (err) {
-                alert("เกิดข้อผิดพลาด");
+                showToast("เกิดข้อผิดพลาดในการบันทึก", "error");
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = isEditMode ? "บันทึกการแก้ไข" : "บันทึกและขึ้นขายทันที";

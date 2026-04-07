@@ -13,9 +13,33 @@
         .cart-closed { transform: translateX(100%); }
         .active-size { @apply bg-emerald-600 text-white border-emerald-600; }
         .inactive-size { @apply bg-white text-slate-600 border-slate-200 hover:border-emerald-300; }
+        
+        /* Pull to Refresh Styles */
+        #ptr-marker { height: 0; overflow: hidden; transition: height 0.2s cubic-bezier(0, 0, 0.2, 1); background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+        .ptr-loading #ptr-marker { height: 60px; }
+        
+        /* Toast Styles */
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 350px; }
+        .toast { pointer-events: auto; padding: 12px 20px; border-radius: 20px; color: white; font-weight: 600; font-size: 14px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; }
+        @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast.success { background: #10b981; border: 1px solid #059669; }
+        .toast.error { background: #ef4444; border: 1px solid #dc2626; }
+        .toast.hide { animation: slideOut 0.3s forwards; }
+        @keyframes slideOut { to { transform: translateY(-20px); opacity: 0; } }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20">
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
+    <!-- PULL TO REFRESH MARKER -->
+    <div id="ptr-marker" class="flex items-center justify-center">
+        <div class="flex items-center gap-2 text-slate-400">
+            <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            <span class="text-sm font-bold">กำลังอัปเดตข้อมูล...</span>
+        </div>
+    </div>
 
     <!-- NAVBAR -->
     <nav class="bg-emerald-600 text-white shadow-lg sticky top-0 z-40">
@@ -140,6 +164,41 @@
         
         let products = []; // Keyed by Name
         let cart = [];
+
+        // --- CUSTOM UI: TOAST ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? '✅' : '❌';
+            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('hide');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- CUSTOM UI: PULL TO REFRESH ---
+        let touchStart = 0;
+        let isRefreshing = false;
+        document.addEventListener('touchstart', e => { touchStart = e.touches[0].pageY; }, { passive: true });
+        document.addEventListener('touchmove', e => {
+            const touchMove = e.touches[0].pageY;
+            if (window.scrollY === 0 && touchMove > touchStart + 80 && !isRefreshing) {
+                isRefreshing = true;
+                document.body.classList.add('ptr-loading');
+                if (window.navigator.vibrate) window.navigator.vibrate(10); // Subtle Haptic
+                loadProductsFromSheet(() => {
+                    renderProducts();
+                    setTimeout(() => {
+                        document.body.classList.remove('ptr-loading');
+                        isRefreshing = false;
+                        showToast("อัปเดตข้อมูลเรียบร้อย!");
+                    }, 500);
+                });
+            }
+        }, { passive: true });
 
         // Secret Admin Access
         let logoClickCount = 0;
@@ -267,6 +326,7 @@
 
             updateCartUI();
             toggleCart(true);
+            showToast(`เพิ่ม ${product.name} ลงในตะกร้าแล้ว!`);
         }
 
         function toggleCart(force = null) {
@@ -345,7 +405,7 @@
                 slip: document.getElementById('slipInput').files[0]
             };
 
-            if(!data.name || !data.phone || !data.address || !data.slip) return alert("กรุณากรอกข้อมูลและแนบสลิปให้ครบถ้วน");
+            if(!data.name || !data.phone || !data.address || !data.slip) return showToast("กรุณากรอกข้อมูลและแนบสลิปให้ครบถ้วน", "error");
 
             btn.disabled = true;
             btn.innerHTML = "กำลังบันทึกออเดอร์...";
@@ -374,7 +434,7 @@
                 const lineMsg = `🌿 ออเดอร์ใหม่! [GUNSHA DELIVERY]\n👤 คุณ: ${data.name}\n📞 เบอร์: ${data.phone}\n📍 ที่อยู่: ${data.address}\n🔗 พิกัด: ${data.map || "-"}\n\n🛒 รายการ:\n${orderItems}\n💰 ยอดรวม: ${subtotal} บาท\n\n🖼️ สลิป: ${imgData.data.url}`;
                 window.location.href = `https://line.me/R/oaMessage/@640tybpp/?${encodeURIComponent(lineMsg)}`;
             } catch(e) {
-                alert("เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่อีกครั้ง");
+                showToast("เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่อีกครั้ง", "error");
                 btn.disabled = false;
                 btn.innerHTML = "ยืนยันและสั่งซื้อ";
             }
