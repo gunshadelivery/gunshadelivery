@@ -26,7 +26,17 @@
         .toast.error { background: #ef4444; border: 1px solid #dc2626; }
         .toast.hide { animation: slideOut 0.3s forwards; }
         @keyframes slideOut { to { transform: translateY(-20px); opacity: 0; } }
+
+        /* Skeleton Shimmer */
+        .skeleton { background: #f1f5f9; background-image: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        
+        /* Category Tabs */
+        .category-tab { @apply px-4 py-2 rounded-xl text-sm font-bold transition-all border whitespace-nowrap; }
+        .category-tab-active { @apply bg-emerald-600 border-emerald-600 text-white shadow-md; }
+        .category-tab-inactive { @apply bg-white border-slate-100 text-slate-400 hover:border-emerald-200 hover:text-emerald-500; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20">
 
@@ -75,6 +85,15 @@
         </div>
     </div>
 
+    <!-- CATEGORY TABS (AI Driven) -->
+    <div class="max-w-md mx-auto px-4 mt-6 overflow-x-auto no-scrollbar flex gap-2" id="categoryTabs">
+        <button onclick="switchCategory('All')" class="category-tab category-tab-active" id="tab-All">ทั้งหมด</button>
+        <button onclick="switchCategory('Indica')" class="category-tab category-tab-inactive" id="tab-Indica">🌿 Indica</button>
+        <button onclick="switchCategory('Sativa')" class="category-tab category-tab-inactive" id="tab-Sativa">☀️ Sativa</button>
+        <button onclick="switchCategory('Hybrid')" class="category-tab category-tab-inactive" id="tab-Hybrid">🧬 Hybrid</button>
+        <button onclick="switchCategory('Other')" class="category-tab category-tab-inactive" id="tab-Other">✨ อื่นๆ</button>
+    </div>
+
     <!-- PRODUCT LIST -->
     <main class="max-w-md mx-auto px-4 mt-8 pb-10">
         <div class="flex justify-between items-center mb-6">
@@ -82,11 +101,40 @@
         </div>
         
         <div id="productGrid" class="grid grid-cols-2 gap-4">
-            <!-- Loading States -->
-            <div class="animate-pulse bg-white p-4 rounded-2xl h-48 border border-slate-100"></div>
-            <div class="animate-pulse bg-white p-4 rounded-2xl h-48 border border-slate-100"></div>
+            <!-- Premium Skeleton States -->
+            ${Array(4).fill(0).map(() => `
+                <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                    <div class="h-32 skeleton"></div>
+                    <div class="p-3 space-y-2">
+                        <div class="h-4 w-3/4 skeleton rounded"></div>
+                        <div class="h-3 w-1/2 skeleton rounded"></div>
+                        <div class="flex gap-1 mt-2">
+                            <div class="h-6 w-8 skeleton rounded-lg"></div>
+                            <div class="h-6 w-8 skeleton rounded-lg"></div>
+                        </div>
+                        <div class="flex justify-between items-center pt-2">
+                            <div class="h-5 w-16 skeleton rounded"></div>
+                            <div class="h-8 w-8 skeleton rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
         </div>
     </main>
+
+    <!-- SUCCESS CELEBRATION MODAL -->
+    <div id="successModal" class="fixed inset-0 z-[100] bg-emerald-900/40 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] p-8 w-full max-w-sm text-center shadow-2xl animate-in zoom-in duration-500">
+            <div class="text-7xl mb-6 scale-up-center">🥳</div>
+            <h2 class="text-3xl font-extrabold text-slate-800 mb-2">สั่งซื้อสำเร็จ!</h2>
+            <p class="text-slate-500 mb-8 px-4">ระบบกำลังพาคุณไปแจ้งเตือนในแอป LINE เพื่อยืนยันออเดอร์...</p>
+            <div class="bg-emerald-50 p-4 rounded-2xl mb-8 flex justify-center items-center gap-2">
+                <span class="text-emerald-600 font-bold">ยอดโอน:</span>
+                <span id="finalOrderTotal" class="text-xl font-black text-emerald-700">0.00 ฿</span>
+            </div>
+            <button onclick="location.reload()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl hover:bg-emerald-700 transition">ตกลง</button>
+        </div>
+    </div>
 
     <!-- CART SIDEBAR (OVERLAY) -->
     <div id="cartOverlay" class="fixed inset-0 bg-black/40 z-50 hidden backdrop-blur-sm transition-opacity duration-300" onclick="toggleCart()"></div>
@@ -164,6 +212,27 @@
         
         let products = []; // Keyed by Name
         let cart = [];
+        let currentCategory = "All";
+
+        // --- AI: SMART STRAIN CLASSIFIER ---
+        const STRAIN_DB = {
+            sativa: ["haze", "sour diesel", "durban", "jack herer", "green crack", "ghost train", "strawberry cough", "thai", "acapulco", "amnesia", "clem", "tangie"],
+            indica: ["kush", "cake", "cookie", "northern lights", "purple", "berry", "grape", "afghan", "bubba", "granddaddy", "godfather", "white widow", "gorb", "runtz"],
+            hybrid: ["gorilla", "glue", "wedding", "sherbert", "gelato", "z-", "lemon cherry", "skunk", "cheese", "blue dream", "mac", "ak-47", "girl scout"]
+        };
+        
+        function classifyStrain(name) {
+            const n = name.toLowerCase();
+            if (STRAIN_DB.sativa.some(s => n.includes(s))) return "Sativa";
+            if (STRAIN_DB.indica.some(i => n.includes(i))) return "Indica";
+            if (STRAIN_DB.hybrid.some(h => n.includes(h))) return "Hybrid";
+            
+            // Logic for accessories or other items
+            const others = ["paper", "bong", "grinder", "lighter", "ถ่าน", "บ้อง", "กระดาษ", "ไฟแช็ค"];
+            if (others.some(o => n.includes(o))) return "Other";
+            
+            return "Hybrid"; // Default for unknown strains
+        }
 
         // --- CUSTOM UI: TOAST ---
         function showToast(message, type = 'success') {
@@ -230,7 +299,8 @@
                                 status: (item.status || '').trim().toLowerCase(),
                                 variants: [],
                                 selectedVariantIdx: 0,
-                                totalSold: 0 // Overall sold count for the strain
+                                totalSold: 0,
+                                aiType: classifyStrain(item.name) // Auto-classify using AI logic
                             };
                         }
                         
@@ -256,7 +326,13 @@
             const grid = document.getElementById("productGrid");
             grid.innerHTML = "";
             const q = filter.toLowerCase();
-            const filtered = products.filter(p => p.name.toLowerCase().includes(q) || p.note.toLowerCase().includes(q));
+            
+            // Apply Filters: Search + Category
+            const filtered = products.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(q) || p.note.toLowerCase().includes(q);
+                const matchesCategory = currentCategory === "All" || p.aiType === currentCategory;
+                return matchesSearch && matchesCategory;
+            });
 
             if (filtered.length === 0) {
                 grid.innerHTML = `<div class="col-span-2 text-center text-slate-400 py-10">ไม่พบสินค้า</div>`;
@@ -308,6 +384,16 @@
                 `;
                 grid.appendChild(card);
             });
+        }
+
+        function switchCategory(cat) {
+            currentCategory = cat;
+            // Update UI
+            document.querySelectorAll('.category-tab').forEach(t => {
+                t.classList.replace('category-tab-active', 'category-tab-inactive');
+            });
+            document.getElementById('tab-' + cat).classList.replace('category-tab-inactive', 'category-tab-active');
+            renderProducts(document.getElementById('searchInput').value);
         }
 
         function selectVariant(pIdx, vIdx) {
@@ -430,9 +516,24 @@
                     })
                 });
 
-                // 3. To LINE
+                // 3. To LINE & Celebration
                 const lineMsg = `🌿 ออเดอร์ใหม่! [GUNSHA DELIVERY]\n👤 คุณ: ${data.name}\n📞 เบอร์: ${data.phone}\n📍 ที่อยู่: ${data.address}\n🔗 พิกัด: ${data.map || "-"}\n\n🛒 รายการ:\n${orderItems}\n💰 ยอดรวม: ${subtotal} บาท\n\n🖼️ สลิป: ${imgData.data.url}`;
-                window.location.href = `https://line.me/R/oaMessage/@640tybpp/?${encodeURIComponent(lineMsg)}`;
+                
+                // --- CELEBRATION ---
+                document.getElementById('finalOrderTotal').textContent = subtotal.toLocaleString() + " ฿";
+                document.getElementById('successModal').classList.remove('hidden');
+                
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#10b981', '#ffffff', '#fbbf24', '#ef4444']
+                });
+
+                // Wait 3 seconds before auto redirect or let user click
+                setTimeout(() => {
+                    window.location.href = `https://line.me/R/oaMessage/@640tybpp/?${encodeURIComponent(lineMsg)}`;
+                }, 3000);
             } catch(e) {
                 showToast("เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่อีกครั้ง", "error");
                 btn.disabled = false;
