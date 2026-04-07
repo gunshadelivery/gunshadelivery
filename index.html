@@ -170,13 +170,21 @@
                                 tags: tags,
                                 status: (item.status || '').trim().toLowerCase(),
                                 variants: [],
-                                selectedVariantIdx: 0
+                                selectedVariantIdx: 0,
+                                totalSold: 0 // Overall sold count for the strain
                             };
                         }
+                        
+                        const stock = parseInt(item.stock) || 0;
+                        const sold = parseInt(item.sold_count) || 0;
+                        
                         grouped[item.name].variants.push({
                             size: item.size || '1G',
-                            price: parseFloat(item.price) || 0
+                            price: parseFloat(item.price) || 0,
+                            stock: stock,
+                            sold: sold
                         });
+                        grouped[item.name].totalSold += sold;
                     });
 
                     products = Object.values(grouped);
@@ -203,12 +211,16 @@
                 
                 // Select Current Variant
                 const variant = p.variants[p.selectedVariantIdx];
+                const isVariantOutOfStock = variant.stock <= 0;
 
                 card.innerHTML = `
                     <div class="h-32 bg-slate-100 flex items-center justify-center relative overflow-hidden">
-                        <img src="${p.image}" class="w-full h-full object-cover ${isOutOfStock ? 'grayscale opacity-75' : ''}" onerror="this.outerHTML='<span class=\\'text-3xl\\'>🌿</span>';" />
-                        ${p.tags.length ? `<span class="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm">${p.tags[0]}</span>` : ''}
-                        ${isOutOfStock ? `<div class="absolute inset-0 bg-slate-900/40 flex items-center justify-center transition-all opacity-100"><span class="bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">หมดชั่วคราว</span></div>` : ''}
+                        <img src="${p.image}" class="w-full h-full object-cover ${isOutOfStock || isVariantOutOfStock ? 'grayscale opacity-75' : ''}" onerror="this.outerHTML='<span class=\\'text-3xl\\'>🌿</span>';" />
+                        <div class="absolute top-2 left-2 flex flex-col gap-1">
+                            ${p.tags.length ? `<span class="bg-emerald-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm w-fit">${p.tags[0]}</span>` : ''}
+                            ${p.totalSold > 0 ? `<span class="bg-orange-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm w-fit">ขายแล้ว ${p.totalSold}+</span>` : ''}
+                        </div>
+                        ${(isOutOfStock || isVariantOutOfStock) ? `<div class="absolute inset-0 bg-slate-900/40 flex items-center justify-center transition-all opacity-100"><span class="bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">หมดชั่วคราว</span></div>` : ''}
                     </div>
                     <div class="p-3 flex-1 flex flex-col">
                         <div class="flex-1">
@@ -219,15 +231,17 @@
                         <!-- VARIANT SELECTOR -->
                         <div class="mt-3 flex flex-wrap gap-1">
                             ${p.variants.map((v, vIdx) => `
-                                <button onclick="selectVariant(${pIdx}, ${vIdx})" class="px-2 py-1 text-[10px] border rounded-lg transition-all font-bold ${p.selectedVariantIdx === vIdx ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-50 text-slate-500 border-slate-100'}">
+                                <button onclick="selectVariant(${pIdx}, ${vIdx})" class="px-2 py-1 text-[10px] border rounded-lg transition-all font-bold ${p.selectedVariantIdx === vIdx ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-50 text-slate-500 border-slate-100'} ${v.stock <= 0 ? 'opacity-40' : ''}">
                                     ${v.size}
                                 </button>
                             `).join('')}
                         </div>
 
+                        ${variant.stock > 0 && variant.stock <= 5 ? `<p class="text-[9px] text-red-500 font-bold mt-2">🔥 เหลือเพียง ${variant.stock} ชิ้น!</p>` : ''}
+
                         <div class="mt-3 flex items-center justify-between">
                             <p class="font-bold text-emerald-600 text-sm">${variant.price.toLocaleString()} ฿</p>
-                            <button onclick="addToCart(${pIdx}, ${p.selectedVariantIdx})" ${isOutOfStock ? 'disabled' : ''} class="bg-emerald-100 text-emerald-700 p-2 rounded-lg hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-30">
+                            <button onclick="addToCart(${pIdx}, ${p.selectedVariantIdx})" ${isOutOfStock || isVariantOutOfStock ? 'disabled' : ''} class="bg-emerald-100 text-emerald-700 p-2 rounded-lg hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-30">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                             </button>
                         </div>
@@ -345,13 +359,14 @@
 
                 // 2. Log to Sheet
                 let orderItems = cart.map(i => `${i.name} [${i.size}] x${i.qty}`).join(', ');
+                let itemsArray = cart.map(i => ({ name: i.name, size: i.size, qty: i.qty }));
                 let subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 
                 await fetch(GAS_URL, {
                     method: 'POST', mode: 'no-cors',
                     body: JSON.stringify({
                         action: "log", name: data.name, phone: data.phone, address: data.address,
-                        mapUrl: data.map, items: orderItems, total: subtotal, slipUrl: imgData.data.url, status: "รอดำเนินการ"
+                        mapUrl: data.map, items: orderItems, itemsArray: itemsArray, total: subtotal, slipUrl: imgData.data.url, status: "รอดำเนินการ"
                     })
                 });
 

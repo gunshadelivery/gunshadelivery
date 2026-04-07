@@ -2,7 +2,7 @@ function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheetOrders = ss.getSheetByName("Orders");
-    var sheetProducts = ss.getSheets()[0]; // Getting the first sheet as Product List
+    var sheetProducts = ss.getSheets()[0]; // Product List
 
     // Initialize Orders sheet if not exists
     if (!sheetOrders) {
@@ -27,6 +27,33 @@ function doPost(e) {
         contents.slipUrl,
         "รอดำเนินการ"
       ]);
+
+      // --- NEW: Update Stock and Sold Count ---
+      if (contents.itemsArray && Array.isArray(contents.itemsArray)) {
+        var productData = sheetProducts.getDataRange().getValues();
+        contents.itemsArray.forEach(function(orderItem) {
+          for (var i = 1; i < productData.length; i++) {
+            // Match Name and Size
+            if (productData[i][0] == orderItem.name && productData[i][1] == orderItem.size) {
+              var currentStock = parseInt(productData[i][7]) || 0;
+              var currentSold = parseInt(productData[i][8]) || 0;
+              var newStock = Math.max(0, currentStock - orderItem.qty);
+              var newSold = currentSold + orderItem.qty;
+              
+              // Update Stock (Col H) and Sold Count (Col I)
+              sheetProducts.getRange(i + 1, 8).setValue(newStock);
+              sheetProducts.getRange(i + 1, 9).setValue(newSold);
+
+              // If stock is 0, update status to "หมด" (Col G)
+              if (newStock <= 0) {
+                sheetProducts.getRange(i + 1, 7).setValue("หมด");
+              }
+              break; 
+            }
+          }
+        });
+      }
+
       return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -57,7 +84,9 @@ function doPost(e) {
         contents.note,
         contents.image,
         contents.tags,
-        contents.status || "มีของ"
+        contents.status || "มีของ",
+        contents.stock || 0,
+        contents.sold_count || 0
       ]);
       return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -67,16 +96,17 @@ function doPost(e) {
     if (action === "updateProduct") {
       var data = sheetProducts.getDataRange().getValues();
       for (var i = 1; i < data.length; i++) {
-        // Unique key: Name + Size
         if (data[i][0] == contents.oldName && data[i][1] == contents.oldSize) {
-          sheetProducts.getRange(i + 1, 1, 1, 7).setValues([[
+          sheetProducts.getRange(i + 1, 1, 1, 9).setValues([[
             contents.name,
             contents.size,
             contents.price,
             contents.note,
             contents.image,
             contents.tags,
-            contents.status
+            contents.status,
+            contents.stock,
+            contents.sold_count
           ]]);
           return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
             .setMimeType(ContentService.MimeType.JSON);
@@ -103,3 +133,4 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
+
