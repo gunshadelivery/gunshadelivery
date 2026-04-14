@@ -219,19 +219,25 @@ function renderOrdersTable() {
         const isConfirmed = order["สถานะ"] === "ชำระเงินแล้ว";
         const displayIdentity = order["เบอร์โทร"] || order["ชื่อลูกค้า"] || "N/A";
         
+        const mapLink = order["ลิงก์แผนที่"] || "";
+        const addressText = order["ที่อยู่"] || "";
+
         body.innerHTML += `<tr>
             <td class="px-6 py-4 text-xs font-mono">${order["วันที่-เวลา"].split('GMT')[0]}</td>
             <td class="px-6 py-4">
                 <div class="flex flex-col">
                     <span class="font-bold text-slate-700">${displayIdentity}</span>
-                    <span class="text-[10px] text-slate-400 truncate max-w-[150px]">${order["ที่อยู่"] || ""}</span>
+                    <div class="flex items-center gap-1">
+                        <span class="text-[10px] text-slate-400 truncate max-w-[150px]">${addressText}</span>
+                        ${mapLink ? `<a href="${mapLink}" target="_blank" class="text-[10px] bg-emerald-50 text-emerald-600 px-1 rounded border border-emerald-100 hover:bg-emerald-100 transition">📍 Map</a>` : ''}
+                    </div>
                 </div>
             </td>
             <td class="px-6 py-4 font-bold text-emerald-600 font-mono">${parseFloat(order["ยอดรวม"]).toLocaleString()}</td>
             <td class="px-6 py-4"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isConfirmed?'bg-emerald-100 text-emerald-700':'bg-orange-100 text-orange-700'}">${order["สถานะ"]||"รอดำเนินการ"}</span></td>
             <td class="px-6 py-4 flex gap-2">
                 <a href="${order["ลิงก์สลิป"]}" target="_blank" class="p-1 hover:bg-slate-100 rounded">🖼️</a>
-                ${!isConfirmed ? `<button onclick="updateConfirm('${order["ชื่อลูกค้า"]}', '${order["ลิงก์สลิป"]}')" class="p-1 hover:bg-emerald-50 rounded">✅</button>` : ''}
+                ${!isConfirmed ? `<button onclick="updateConfirm('${order["ชื่อลูกค้า"].replace(/'/g, "\\'")}', '${order["ลิงก์สลิป"]}')" class="p-1 hover:bg-emerald-50 rounded">✅</button>` : ''}
             </td>
         </tr>`;
     });

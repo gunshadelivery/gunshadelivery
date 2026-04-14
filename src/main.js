@@ -136,7 +136,7 @@ function renderProducts(filter = "") {
         return;
     }
 
-    filtered.forEach((p, pIdx) => {
+    filtered.forEach((p) => {
         const card = document.createElement("div");
         card.className = "bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col";
         const isOutOfStock = p.status === 'หมด' || p.status === 'sold out' || p.status === '0';
@@ -146,7 +146,10 @@ function renderProducts(filter = "") {
         const isVariantOutOfStock = variant.stock <= 0;
 
         // Priority loading for top items
-        const priorityAttr = pIdx < 4 ? 'fetchpriority="high"' : 'loading="lazy"';
+        const priorityAttr = products.indexOf(p) < 4 ? 'fetchpriority="high"' : 'loading="lazy"';
+        
+        // Use name as identifier to avoid index mismatch in filtered views
+        const pNameEscaped = p.name.replace(/'/g, "\\'");
 
         card.innerHTML = `
             <div class="h-32 bg-slate-100 flex items-center justify-center relative overflow-hidden">
@@ -170,7 +173,7 @@ function renderProducts(filter = "") {
                 <!-- VARIANT SELECTOR -->
                 <div class="mt-3 flex flex-wrap gap-1">
                     ${p.variants.map((v, vIdx) => `
-                        <button onclick="window.selectVariant(${pIdx}, ${vIdx})" class="px-2 py-1 text-[10px] border rounded-lg transition-all font-bold ${p.selectedVariantIdx === vIdx ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-50 text-slate-500 border-slate-100'} ${v.stock <= 0 ? 'opacity-40' : ''}">
+                        <button onclick="window.selectVariant('${pNameEscaped}', ${vIdx})" class="px-2 py-1 text-[10px] border rounded-lg transition-all font-bold ${p.selectedVariantIdx === vIdx ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-50 text-slate-500 border-slate-100'} ${v.stock <= 0 ? 'opacity-40' : ''}">
                             ${v.size}
                         </button>
                     `).join('')}
@@ -180,7 +183,7 @@ function renderProducts(filter = "") {
 
                 <div class="mt-3 flex items-center justify-between">
                     <p class="font-bold text-emerald-600 text-sm">${variant.price.toLocaleString()} ฿</p>
-                    <button onclick="window.addToCart(${pIdx}, ${p.selectedVariantIdx})" ${isOutOfStock || isVariantOutOfStock ? 'disabled' : ''} class="bg-emerald-100 text-emerald-700 p-2 rounded-lg hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-30">
+                    <button onclick="window.addToCart('${pNameEscaped}', ${p.selectedVariantIdx})" ${isOutOfStock || isVariantOutOfStock ? 'disabled' : ''} class="bg-emerald-100 text-emerald-700 p-2 rounded-lg hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-30">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     </button>
                 </div>
@@ -204,15 +207,19 @@ function switchCategory(cat) {
     renderProducts(searchInput ? searchInput.value : "");
 }
 
-function selectVariant(pIdx, vIdx) {
-    products[pIdx].selectedVariantIdx = vIdx;
-    const searchInput = document.getElementById('searchInput');
-    renderProducts(searchInput ? searchInput.value : "");
+function selectVariant(pName, vIdx) {
+    const product = products.find(p => p.name === pName);
+    if (product) {
+        product.selectedVariantIdx = vIdx;
+        const searchInput = document.getElementById('searchInput');
+        renderProducts(searchInput ? searchInput.value : "");
+    }
 }
 
 // --- CART LOGIC ---
-function addToCart(pIdx, vIdx) {
-    const product = products[pIdx];
+function addToCart(pName, vIdx) {
+    const product = products.find(p => p.name === pName);
+    if (!product) return;
     const variant = product.variants[vIdx];
     
     const existing = cart.find(item => item.name === product.name && item.size === variant.size);
@@ -316,11 +323,16 @@ function getCurrentLocation(event) {
             setTimeout(() => { btn.innerHTML = originalText; }, 2000);
         },
         (err) => {
-            showToast("ไม่สามารถดึงพิกัดได้ กรุณากดอนุญาตการเข้าถึงตำแหน่ง", "error");
+            let msg = "ไม่สามารถดึงพิกัดได้ กรุณากดอนุญาตการเข้าถึงตำแหน่ง";
+            if (err.code === 1) msg = "กรุณาอนุญาตการเข้าถึงตำแหน่ง (Permission Denied)";
+            else if (err.code === 2) msg = "ไม่พบสัญญาณตำแหน่ง (Position Unavailable)";
+            else if (err.code === 3) msg = "การค้นหาพิกัดใช้เวลานานเกินไป (Timeout)";
+
+            showToast(msg, "error");
             btn.disabled = false;
             btn.innerHTML = originalText;
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } // Increased timeout to 10s
     );
 }
 
