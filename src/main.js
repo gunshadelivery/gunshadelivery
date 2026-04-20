@@ -380,7 +380,7 @@ async function submitOrder() {
         document.getElementById('successModal').classList.remove('hidden');
         
         // Store LINE URL for manual redirect if needed
-        currentLineUrl = `https://line.me/R/oaMessage/@640tybpp/?${encodeURIComponent(lineMsg)}`;
+        currentLineUrl = `https://line.me/R/oaMessage/%40640tybpp/?${encodeURIComponent(lineMsg)}`;
         
         confetti({
             particleCount: 150,
