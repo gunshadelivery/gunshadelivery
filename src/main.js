@@ -7,6 +7,7 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbzZHV5tAWeWmPGq9cI84I3R
 let products = []; // Keyed by Name
 let cart = [];
 let currentCategory = "All";
+let currentLineUrl = "";
 
 // --- AI: SMART STRAIN CLASSIFIER ---
 const STRAIN_DB = {
@@ -378,6 +379,9 @@ async function submitOrder() {
         document.getElementById('finalOrderTotal').textContent = subtotal.toLocaleString() + " ฿";
         document.getElementById('successModal').classList.remove('hidden');
         
+        // Store LINE URL for manual redirect if needed
+        currentLineUrl = `https://line.me/R/oaMessage/@640tybpp/?${encodeURIComponent(lineMsg)}`;
+        
         confetti({
             particleCount: 150,
             spread: 70,
@@ -385,9 +389,9 @@ async function submitOrder() {
             colors: ['#10b981', '#ffffff', '#fbbf24', '#ef4444']
         });
 
-        // Wait 3 seconds before auto redirect or let user click
+        // Wait 3 seconds before auto redirect
         setTimeout(() => {
-            window.location.href = `https://line.me/R/oaMessage/@640tybpp/?${encodeURIComponent(lineMsg)}`;
+            if (currentLineUrl) window.location.href = currentLineUrl;
         }, 3000);
     } catch(e) {
         showToast("เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่อีกครั้ง", "error");
@@ -409,6 +413,10 @@ window.closeCheckout = closeCheckout;
 window.previewSlip = previewSlip;
 window.getCurrentLocation = getCurrentLocation;
 window.submitOrder = submitOrder;
+window.redirectToLine = () => {
+    if (currentLineUrl) window.location.href = currentLineUrl;
+    else window.location.reload();
+};
 
 // Setup input listeners to avoid parameter passing issues
 document.addEventListener('DOMContentLoaded', () => {
