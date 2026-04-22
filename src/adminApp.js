@@ -1,5 +1,6 @@
 import './style.css';
 import Papa from 'papaparse';
+import Chart from 'chart.js/auto';
 
 const MASTER_PASS = "gunsha888";
 const ORDERS_CSV_URL = "https://docs.google.com/spreadsheets/d/1rczsaPil58aAm_kw1FdhopdJA0U6v6x2ELROaupP09g/export?format=csv&gid=1214202779";
@@ -199,7 +200,7 @@ function renderChart(dataMap) {
         labels.push(k); values.push(dataMap[k] || 0);
     }
     if (salesChart) salesChart.destroy();
-    // Assuming Chart is available globally via CDN in HTML
+    
     salesChart = new Chart(ctx, {
         type: 'line', data: { labels, datasets: [{ data: values, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
@@ -389,20 +390,66 @@ async function saveProduct() {
 
     try {
         if(isEditMode) {
-            for(let oldV of originalVariants) {
+            // Smart Update: Determine which variants to update, add, or delete
+            const toUpdate = [];
+            const toAdd = [];
+            
+            variants.forEach((v, idx) => {
+                if (idx < originalVariants.length) {
+                    toUpdate.push({ 
+                        variant: v, 
+                        oldSize: originalVariants[idx].size 
+                    });
+                } else {
+                    toAdd.push(v);
+                }
+            });
+
+            const toDelete = originalVariants.slice(variants.length);
+
+            // 1. Update existing variants
+            for (let item of toUpdate) {
+                const payload = {
+                    action: "updateProduct",
+                    oldName: oldProductName,
+                    oldSize: item.oldSize,
+                    name, note, tags, image: imageUrl,
+                    size: item.variant.size, price: item.variant.price,
+                    stock: item.variant.stock, sold_count: item.variant.sold,
+                    status: parseInt(item.variant.stock) > 0 ? "มีของ" : "หมด"
+                };
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            }
+
+            // 2. Add new variants
+            for (let v of toAdd) {
+                const payload = {
+                    action: "addProduct",
+                    name, note, tags, image: imageUrl,
+                    size: v.size, price: v.price,
+                    stock: v.stock, sold_count: v.sold,
+                    status: parseInt(v.stock) > 0 ? "มีของ" : "หมด"
+                };
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            }
+
+            // 3. Delete removed variants
+            for (let oldV of toDelete) {
                 await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "deleteProduct", name: oldProductName, size: oldV.size }) });
             }
-        }
 
-        for(let variant of variants) {
-            const payload = {
-                action: "addProduct",
-                name, note, tags, image: imageUrl,
-                size: variant.size, price: variant.price,
-                stock: variant.stock, sold_count: variant.sold,
-                status: parseInt(variant.stock) > 0 ? "มีของ" : "หมด"
-            };
-            await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        } else {
+            // Standard Add Mode
+            for(let variant of variants) {
+                const payload = {
+                    action: "addProduct",
+                    name, note, tags, image: imageUrl,
+                    size: variant.size, price: variant.price,
+                    stock: variant.stock, sold_count: variant.sold,
+                    status: parseInt(variant.stock) > 0 ? "มีของ" : "หมด"
+                };
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            }
         }
 
         showToast(isEditMode ? "แก้ไขข้อมูลสำเร็จ!" : "เพิ่มสินค้าสำเร็จ!", "success");

@@ -1,5 +1,6 @@
 import './style.css';
 import Papa from 'papaparse';
+import confetti from 'canvas-confetti';
 
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1rczsaPil58aAm_kw1FdhopdJA0U6v6x2ELROaupP09g/gviz/tq?tqx=out:csv";
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzZHV5tAWeWmPGq9cI84I3RwpnrtdimMbdpMjXo0yQ-eemH4vZiz6hKoIyhk-1nuFc4ZA/exec";
