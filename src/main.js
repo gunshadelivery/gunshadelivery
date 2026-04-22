@@ -130,7 +130,11 @@ function renderProducts(filter = "") {
     const filtered = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(q) || p.note.toLowerCase().includes(q);
         const matchesCategory = currentCategory === "All" || p.aiType === currentCategory;
-        return matchesSearch && matchesCategory;
+        
+        // Main page ONLY shows Herbs (Indica, Sativa, Hybrid) + Other (if it doesn't match Accessories/Rolling)
+        const isAccessory = ["Accessories", "Rolling"].includes(p.aiType);
+        
+        return matchesSearch && matchesCategory && !isAccessory;
     });
 
     if (filtered.length === 0) {

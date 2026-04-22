@@ -95,9 +95,6 @@
         <button onclick="switchCategory('Indica')" class="category-tab category-tab-inactive" id="tab-Indica">🌿 Indica</button>
         <button onclick="switchCategory('Sativa')" class="category-tab category-tab-inactive" id="tab-Sativa">☀️ Sativa</button>
         <button onclick="switchCategory('Hybrid')" class="category-tab category-tab-inactive" id="tab-Hybrid">🧬 Hybrid</button>
-        <button onclick="switchCategory('Accessories')" class="category-tab category-tab-inactive" id="tab-Accessories">🏺 อุปกรณ์/บ้อง</button>
-        <button onclick="switchCategory('Rolling')" class="category-tab category-tab-inactive" id="tab-Rolling">📝 กระดาษ/มวน</button>
-        <button onclick="switchCategory('Other')" class="category-tab category-tab-inactive" id="tab-Other">✨ อื่นๆ</button>
     </div>
 
     <!-- PRODUCT LIST -->
@@ -256,6 +253,18 @@
             </div>
         </div>
     </div>
+
+    <!-- BOTTOM NAVIGATION -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around items-center py-2 z-50 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)]">
+        <a href="index.html" class="flex flex-col items-center gap-1 active group">
+            <span class="text-xl opacity-40 group-[.active]:opacity-100 transition-opacity">🌿</span>
+            <span class="text-[10px] font-bold text-slate-400 group-[.active]:text-emerald-600 transition-colors">ร้านสมุนไพร</span>
+        </a>
+        <a href="accessories.html" class="flex flex-col items-center gap-1 group">
+            <span class="text-xl opacity-40 group-[.active]:opacity-100 transition-opacity">🏺</span>
+            <span class="text-[10px] font-bold text-slate-400 group-[.active]:text-emerald-600 transition-colors">ร้านอุปกรณ์</span>
+        </a>
+    </nav>
 
     <!-- SCRIPTS -->
     <script type="module" src="/src/main.js"></script>

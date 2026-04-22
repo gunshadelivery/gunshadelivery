@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gunsha Accessories - ร้านอุปกรณ์</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .category-tab {
+            padding: 8px 16px;
+            border-radius: 99px;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .category-tab-active { background-color: #10b981; color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+        .category-tab-inactive { background-color: white; color: #64748b; border: 1px solid #f1f5f9; }
+        .animate-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="pb-24">
+    <!-- NAVBAR -->
+    <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100">
+        <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">🏺</span>
+                <div class="flex flex-col">
+                    <h1 class="text-lg font-bold leading-none text-slate-800">Shop Accessories</h1>
+                    <span class="text-[10px] opacity-60 font-bold uppercase tracking-wider text-slate-400">อุปกรณ์ & บ้อง</span>
+                </div>
+            </div>
+            <button onclick="toggleCart()" class="relative p-2 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
+                <span class="text-xl">🛒</span>
+                <span id="cartCount" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white hidden">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- BANNER -->
+    <div class="max-w-md mx-auto px-4 mt-4">
+        <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 text-white relative overflow-hidden shadow-xl shadow-slate-200">
+            <div class="relative z-10">
+                <h2 class="text-2xl font-bold mb-1">อุปกรณ์ครบมือ ✨</h2>
+                <p class="text-slate-400 text-xs">บ้อง เครื่องบด และกระดาษพรีเมียม</p>
+            </div>
+            <span class="absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12">🏺</span>
+        </div>
+    </div>
+
+    <!-- CATEGORY TABS -->
+    <div class="max-w-md mx-auto px-4 mt-6 overflow-x-auto no-scrollbar flex gap-2" id="categoryTabs">
+        <button onclick="switchCategory('All')" class="category-tab category-tab-active" id="tab-All">ทั้งหมด</button>
+        <button onclick="switchCategory('Accessories')" class="category-tab category-tab-inactive" id="tab-Accessories">🏺 อุปกรณ์/บ้อง</button>
+        <button onclick="switchCategory('Rolling')" class="category-tab category-tab-inactive" id="tab-Rolling">📝 กระดาษ/มวน</button>
+        <button onclick="switchCategory('Other')" class="category-tab category-tab-inactive" id="tab-Other">✨ อื่นๆ</button>
+    </div>
+
+    <!-- PRODUCT LIST -->
+    <div class="max-w-md mx-auto px-4 mt-6 grid grid-cols-2 gap-4" id="productList">
+        <!-- Loading Skeleton -->
+        <div class="bg-white rounded-3xl p-3 animate-pulse border border-slate-50">
+            <div class="aspect-square bg-slate-100 rounded-2xl mb-3"></div>
+            <div class="h-4 bg-slate-100 rounded w-3/4 mb-2"></div>
+            <div class="h-4 bg-slate-100 rounded w-1/2"></div>
+        </div>
+        <div class="bg-white rounded-3xl p-3 animate-pulse border border-slate-50">
+            <div class="aspect-square bg-slate-100 rounded-2xl mb-3"></div>
+            <div class="h-4 bg-slate-100 rounded w-3/4 mb-2"></div>
+            <div class="h-4 bg-slate-100 rounded w-1/2"></div>
+        </div>
+    </div>
+
+    <!-- CART SIDEBAR (MODAL) -->
+    <div id="cartSidebar" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="toggleCart()"></div>
+        <div class="absolute bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[40px] shadow-2xl h-[85vh] flex flex-col transform translate-y-full transition-transform duration-300" id="cartContent">
+            <div class="p-6 border-b border-slate-50 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-slate-800">รถเข็นของคุณ</h3>
+                <button onclick="toggleCart()" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="cartItems" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <!-- Cart Items -->
+            </div>
+            <div class="p-8 bg-slate-50/50 rounded-t-[40px]">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-slate-500 font-medium">ยอดรวมทั้งหมด</span>
+                    <span id="cartTotal" class="text-2xl font-black text-slate-800">0 ฿</span>
+                </div>
+                <button onclick="goToCheckout()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-lg shadow-xl shadow-slate-200 hover:bg-slate-800 transition active:scale-95">ไปที่หน้าชำระเงิน 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHECKOUT MODAL -->
+    <div id="checkoutModal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
+        <div class="absolute inset-x-0 bottom-0 top-10 bg-white rounded-t-[40px] flex flex-col max-w-md mx-auto">
+            <div class="p-6 border-b border-slate-50 flex justify-between items-center">
+                <h3 class="text-xl font-bold">ข้อมูลการจัดส่ง</h3>
+                <button onclick="closeCheckout()" class="text-slate-400">ปิด</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <div class="space-y-4">
+                    <div class="group">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">เบอร์โทรติดต่อ *</label>
+                        <input type="tel" id="custPhone" class="w-full bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-2xl px-5 py-4 transition outline-none text-lg font-medium" placeholder="08x-xxx-xxxx">
+                    </div>
+                    
+                    <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">พิกัดจัดส่ง (GPS) *</label>
+                        <button onclick="getCurrentLocation()" class="w-full bg-white border-2 border-slate-200 text-slate-700 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:border-slate-900 transition mb-4">
+                            <span>📍</span> ปักหมุดที่อยู่ปัจจุบัน
+                        </button>
+                        <div id="custMap" class="text-[10px] text-slate-400 break-all bg-white p-3 rounded-xl border border-slate-100 font-mono hidden"></div>
+                    </div>
+
+                    <div class="p-6 bg-blue-50 rounded-3xl border border-blue-100 space-y-3">
+                        <label class="block text-xs font-bold text-blue-400 uppercase tracking-widest">ช่องทางชำระเงิน</label>
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl">📱</div>
+                            <div>
+                                <p class="text-sm font-bold text-blue-900">แอปธนาคาร / QR PromptPay</p>
+                                <p class="text-[10px] text-blue-600">ชำระเงินสะดวก รวดเร็ว ปลอดภัย</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">หลักฐานการโอนเงิน (สลิป) *</label>
+                        <input type="file" id="custSlip" accept="image/*" onchange="previewSlip(this)" class="hidden">
+                        <label for="custSlip" class="cursor-pointer block w-full aspect-video bg-white border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-slate-400 transition overflow-hidden">
+                            <img id="slipPreview" class="hidden w-full h-full object-cover">
+                            <div id="slipPlaceholder" class="flex flex-col items-center">
+                                <span class="text-3xl mb-1">📸</span>
+                                <span class="text-xs font-bold">อัปโหลดสลิปที่นี่</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="p-8 border-t border-slate-50">
+                <button onclick="submitOrder()" id="submitOrderBtn" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-lg shadow-xl shadow-slate-200 disabled:opacity-50">สั่งซื้อและส่งข้อมูล 🛸</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUCCESS MODAL -->
+    <div id="successModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-xl"></div>
+        <div class="bg-white rounded-[40px] p-8 w-full max-w-sm relative text-center space-y-6">
+            <div class="w-24 h-24 bg-emerald-100 text-5xl flex items-center justify-center rounded-full mx-auto animate-bounce">✅</div>
+            <div>
+                <h3 class="text-2xl font-bold text-slate-800 mb-2">สั่งซื้อสำเร็จ!</h3>
+                <p class="text-slate-500 text-sm">ออเดอร์ของคุณกำลังเดินทางไปหาคุณ</p>
+                <div class="mt-4 p-4 bg-slate-50 rounded-2xl">
+                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">ยอดชำระทั้งสิ้น</p>
+                    <p id="finalOrderTotal" class="text-2xl font-black text-slate-800">0 ฿</p>
+                </div>
+            </div>
+            <button onclick="redirectToLine()" class="w-full bg-[#06C755] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 hover:opacity-90 transition">
+                <span>💬</span> แจ้งแอดมินทาง LINE
+            </button>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAVIGATION -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around items-center py-2 z-50 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)]">
+        <a href="index.html" class="flex flex-col items-center gap-1 group">
+            <span class="text-xl opacity-40 group-[.active]:opacity-100 transition-opacity">🌿</span>
+            <span class="text-[10px] font-bold text-slate-400 group-[.active]:text-emerald-600 transition-colors">ร้านสมุนไพร</span>
+        </a>
+        <a href="accessories.html" class="flex flex-col items-center gap-1 active group">
+            <span class="text-xl opacity-40 group-[.active]:opacity-100 transition-opacity">🏺</span>
+            <span class="text-[10px] font-bold text-slate-400 group-[.active]:text-emerald-600 transition-colors">ร้านอุปกรณ์</span>
+        </a>
+    </nav>
+
+    <!-- SCRIPTS -->
+    <script type="module" src="/src/accessories.js"></script>
+</body>
+</html>

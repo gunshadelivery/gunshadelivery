@@ -357,16 +357,20 @@ async function saveProduct() {
     const tags = document.getElementById('pTags').value;
     
     const variantRows = document.querySelectorAll('.variant-row');
+    const isHerb = ["Indica", "Sativa", "Hybrid"].includes(category);
+    
     const variants = Array.from(variantRows).map(row => {
         let sizeVal = row.querySelector('.v-size').value;
-        if(sizeVal && !sizeVal.toString().endsWith('G')) sizeVal += 'G';
+        if (!sizeVal && !isHerb) sizeVal = "Standard"; // Default for accessories
+        if (sizeVal && !sizeVal.toString().endsWith('G') && isHerb) sizeVal += 'G';
+        
         return {
             size: sizeVal,
             price: row.querySelector('.v-price').value,
             stock: row.querySelector('.v-stock').value || 0,
             sold: row.querySelector('.v-sold').value || 0
         };
-    }).filter(v => v.size && v.price && v.size !== 'G');
+    }).filter(v => v.size && v.price && (isHerb ? v.size !== 'G' : true));
 
     if(!name || variants.length === 0) return alert("กรุณากรอกข้อมูลที่สำคัญให้ครบ");
 
