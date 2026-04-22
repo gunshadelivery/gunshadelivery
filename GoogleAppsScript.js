@@ -11,6 +11,12 @@ function doPost(e) {
       sheetOrders.getRange(1, 1, 1, 9).setFontWeight("bold").setBackground("#d1e7dd");
     }
 
+    // Initialize Products header if new sheet
+    if (sheetProducts.getLastRow() === 0) {
+      sheetProducts.appendRow(["ชื่อ", "ขนาด", "ราคา", "คำอธิบาย", "รูปภาพ", "แท็ก", "สถานะ", "สต็อก", "ขายแล้ว", "หมวดหมู่"]);
+      sheetProducts.getRange(1, 1, 1, 10).setFontWeight("bold").setBackground("#e2e8f0");
+    }
+
     var contents = JSON.parse(e.postData.contents);
     var action = contents.action || "log";
 
@@ -86,7 +92,8 @@ function doPost(e) {
         contents.tags,
         contents.status || "มีของ",
         contents.stock || 0,
-        contents.sold_count || 0
+        contents.sold_count || 0,
+        contents.category || ""
       ]);
       return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -106,7 +113,8 @@ function doPost(e) {
             contents.tags,
             contents.status,
             contents.stock,
-            contents.sold_count
+            contents.sold_count,
+            contents.category
           ]]);
           return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
             .setMimeType(ContentService.MimeType.JSON);

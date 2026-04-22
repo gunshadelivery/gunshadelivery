@@ -96,7 +96,7 @@ function loadProductsFromSheet(callback) {
                         variants: [],
                         selectedVariantIdx: 0,
                         totalSold: 0,
-                        aiType: classifyStrain(item.name) // Auto-classify using AI logic
+                        aiType: item["หมวดหมู่"] || classifyStrain(item.name) // Use manual category if available, otherwise AI
                     };
                 }
                 

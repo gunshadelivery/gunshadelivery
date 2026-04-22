@@ -281,6 +281,7 @@ function renderProductsTable() {
         body.innerHTML += `<tr>
             <td class="px-6 py-3"><img src="${p.image}" class="w-10 h-10 object-cover rounded-lg bg-slate-100" onerror="this.src='https://via.placeholder.com/40?text=🌿'"></td>
             <td class="px-6 py-3 font-bold">${p.name}</td>
+            <td class="px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">${p.category || 'N/A'}</span></td>
             <td class="px-6 py-3 text-slate-500 text-xs">${p.sizes.join(', ')}</td>
             <td class="px-6 py-3 font-bold text-emerald-600">${p.minPrice.toLocaleString()} ฿ +</td>
             <td class="px-6 py-3 font-bold ${p.totalStock < 5 ? 'text-red-500' : 'text-slate-600'}">${p.totalStock}</td>
@@ -324,6 +325,7 @@ function editProduct(name) {
     originalVariants = variants.map(v => ({ size: v.size, price: v.price }));
 
     document.getElementById('pName').value = base.name;
+    document.getElementById('pCategory').value = base.category || "Hybrid";
     document.getElementById('pNote').value = base.note || "";
     document.getElementById('pTags').value = base.tags || "";
     document.getElementById('productForm').dataset.existingImage = base.image || "";
@@ -350,6 +352,7 @@ async function saveProduct() {
     const btn = document.getElementById('saveProductBtn');
     const fileInput = document.getElementById('pImage');
     const name = document.getElementById('pName').value;
+    const category = document.getElementById('pCategory').value;
     const note = document.getElementById('pNote').value;
     const tags = document.getElementById('pTags').value;
     
@@ -413,7 +416,7 @@ async function saveProduct() {
                     action: "updateProduct",
                     oldName: oldProductName,
                     oldSize: item.oldSize,
-                    name, note, tags, image: imageUrl,
+                    name, category, note, tags, image: imageUrl,
                     size: item.variant.size, price: item.variant.price,
                     stock: item.variant.stock, sold_count: item.variant.sold,
                     status: parseInt(item.variant.stock) > 0 ? "มีของ" : "หมด"
@@ -425,7 +428,7 @@ async function saveProduct() {
             for (let v of toAdd) {
                 const payload = {
                     action: "addProduct",
-                    name, note, tags, image: imageUrl,
+                    name, category, note, tags, image: imageUrl,
                     size: v.size, price: v.price,
                     stock: v.stock, sold_count: v.sold,
                     status: parseInt(v.stock) > 0 ? "มีของ" : "หมด"
@@ -443,7 +446,7 @@ async function saveProduct() {
             for(let variant of variants) {
                 const payload = {
                     action: "addProduct",
-                    name, note, tags, image: imageUrl,
+                    name, category, note, tags, image: imageUrl,
                     size: variant.size, price: variant.price,
                     stock: variant.stock, sold_count: variant.sold,
                     status: parseInt(variant.stock) > 0 ? "มีของ" : "หมด"
