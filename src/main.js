@@ -374,14 +374,14 @@ async function submitOrder() {
         });
 
         // 3. To LINE & Celebration
-        const lineMsg = `🌿 ออเดอร์ใหม่! [GUNSHA v1.2.0]\n📞 เบอร์: ${data.phone}\n📍 พิกัดจัดส่ง: ${data.map}\n\n🛒 รายการ:\n${orderItems}\n💰 ยอดรวม: ${subtotal} บาท\n\n🖼️ สลิป: ${imgData.data.url}`;
+        const lineMsg = `🌿 ออเดอร์ใหม่! [GUNSHA v1.2.1]\n📞 เบอร์: ${data.phone}\n📍 พิกัดจัดส่ง: ${data.map}\n\n🛒 รายการ:\n${orderItems}\n💰 ยอดรวม: ${subtotal} บาท\n\n🖼️ สลิป: ${imgData.data.url}`;
         
         // --- CELEBRATION ---
         document.getElementById('finalOrderTotal').textContent = subtotal.toLocaleString() + " ฿";
         document.getElementById('successModal').classList.remove('hidden');
         
         // Store LINE URL for manual redirect if needed
-        currentLineUrl = `https://line.me/R/oaMessage/%40640tybpp/?${encodeURIComponent(lineMsg)}`;
+        currentLineUrl = `line://oaMessage/@059rkyoa/?${encodeURIComponent(lineMsg)}`;
         
         confetti({
             particleCount: 150,
