@@ -14,7 +14,9 @@ let currentLineUrl = "";
 const STRAIN_DB = {
     sativa: ["haze", "sour diesel", "durban", "jack herer", "green crack", "ghost train", "strawberry cough", "thai", "acapulco", "amnesia", "clem", "tangie"],
     indica: ["kush", "cake", "cookie", "northern lights", "purple", "berry", "grape", "afghan", "bubba", "granddaddy", "godfather", "white widow", "gorb", "runtz"],
-    hybrid: ["gorilla", "glue", "wedding", "sherbert", "gelato", "z-", "lemon cherry", "skunk", "cheese", "blue dream", "mac", "ak-47", "girl scout"]
+    hybrid: ["gorilla", "glue", "wedding", "sherbert", "gelato", "z-", "lemon cherry", "skunk", "cheese", "blue dream", "mac", "ak-47", "girl scout"],
+    accessories: ["bong", "grinder", "blender", "lighter", "บ้อง", "เครื่องบด", "เครื่องปั่น", "ไกเดอร์", "ไฟแช็ค", "หลุม"],
+    rolling: ["paper", "roll", "raw", "ocb", "filter", "tips", "กระดาษ", "มวน", "ก้นกรอง", "พันลำ"]
 };
 
 function classifyStrain(name) {
@@ -22,12 +24,10 @@ function classifyStrain(name) {
     if (STRAIN_DB.sativa.some(s => n.includes(s))) return "Sativa";
     if (STRAIN_DB.indica.some(i => n.includes(i))) return "Indica";
     if (STRAIN_DB.hybrid.some(h => n.includes(h))) return "Hybrid";
+    if (STRAIN_DB.accessories.some(a => n.includes(a))) return "Accessories";
+    if (STRAIN_DB.rolling.some(r => n.includes(r))) return "Rolling";
     
-    // Logic for accessories or other items
-    const others = ["paper", "bong", "grinder", "lighter", "ถ่าน", "บ้อง", "กระดาษ", "ไฟแช็ค"];
-    if (others.some(o => n.includes(o))) return "Other";
-    
-    return "Hybrid"; // Default for unknown strains
+    return "Other"; // Default for unknown strains
 }
 
 // --- CUSTOM UI: TOAST ---
