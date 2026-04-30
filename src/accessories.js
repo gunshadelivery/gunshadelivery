@@ -1,9 +1,7 @@
 import './style.css';
 import Papa from 'papaparse';
 import confetti from 'canvas-confetti';
-
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1rczsaPil58aAm_kw1FdhopdJA0U6v6x2ELROaupP09g/gviz/tq?tqx=out:csv";
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzZHV5tAWeWmPGq9cI84I3RwpnrtdimMbdpMjXo0yQ-eemH4vZiz6hKoIyhk-1nuFc4ZA/exec";
+import { SHEET_CSV_URL, GAS_URL, SHOP_NAME, SHOP_VERSION, buildLineUrl, getImgbbUploadUrl } from './config.js';
 
 let products = []; // Keyed by Name
 let cart = [];
@@ -234,28 +232,40 @@ function previewSlip(input) {
 }
 
 function getCurrentLocation() {
-    if (!navigator.geolocation) return alert("ไม่รองรับ GPS");
+    if (!navigator.geolocation) return showToast("ไม่รองรับ GPS", "error");
     navigator.geolocation.getCurrentPosition((pos) => {
         const url = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
         document.getElementById('custMap').textContent = url;
         document.getElementById('custMap').classList.remove('hidden');
+        showToast("ดึงพิกัดสำเร็จ!");
+    }, (err) => {
+        showToast("ไม่สามารถดึงพิกัดได้", "error");
     });
 }
 
 async function submitOrder() {
     const btn = document.getElementById('submitOrderBtn');
+    const imgbbUrl = getImgbbUploadUrl();
     const phone = document.getElementById('custPhone').value;
     const map = document.getElementById('custMap').textContent;
     const slip = document.getElementById('custSlip').files[0];
-    if(!phone || !map || !slip) return alert("กรุณากรอกข้อมูลให้ครบ");
+
+    if(!phone || !map || !slip) return showToast("กรุณากรอกข้อมูลให้ครบ", "error");
+    
     btn.disabled = true;
     btn.textContent = "กำลังดำเนินการ...";
+
     try {
+        // 1. Upload Slip
         const formData = new FormData(); formData.append('image', slip);
-        const imgRes = await fetch(`https://api.imgbb.com/1/upload?key=467157500c7b535f4c9839accf416565`, { method: 'POST', body: formData });
+        const imgRes = await fetch(imgbbUrl, { method: 'POST', body: formData });
         const imgData = await imgRes.json();
+        if(!imgData.success) throw new Error("Upload Fail");
+
+        // 2. Log to Sheet
         const orderItems = cart.map(i => `${i.name} x${i.qty}`).join(', ');
         const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+
         await fetch(GAS_URL, {
             method: 'POST', mode: 'no-cors',
             body: JSON.stringify({
@@ -263,13 +273,34 @@ async function submitOrder() {
                 mapUrl: map, items: orderItems, total: subtotal, slipUrl: imgData.data.url, status: "รอดำเนินการ"
             })
         });
-        const lineMsg = `🏺 อุปกรณ์ใหม่! [GUNSHA v1.2.1]\n📞 เบอร์: ${phone}\n📍 พิกัด: ${map}\n\n🛒 รายการ:\n${orderItems}\n💰 ยอดรวม: ${subtotal} บาท\n\n🖼️ สลิป: ${imgData.data.url}`;
-        currentLineUrl = `line://oaMessage/@059rkyoa/?${encodeURIComponent(lineMsg)}`;
+
+        // 3. Premium LINE Message
+        const itemsDetail = cart.map(i => `- ${i.name.toUpperCase()} x${i.qty}`).join('\n');
+        const lineMsg = `🏺 ออเดอร์อุปกรณ์! [${SHOP_NAME} v${SHOP_VERSION}]
+📞 เบอร์: ${phone}
+📍 พิกัดจัดส่ง: ${map}
+
+🛒 รายการ:
+${itemsDetail}
+💰 ยอดรวม: ${subtotal.toLocaleString()} บาท
+
+🖼️ สลิป: ${imgData.data.url}`;
+        
+        // Build direct OA URL
+        currentLineUrl = buildLineUrl(lineMsg);
+
         document.getElementById('finalOrderTotal').textContent = subtotal.toLocaleString() + " ฿";
         document.getElementById('successModal').classList.remove('hidden');
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        
+        // Auto redirect after 3s
         setTimeout(() => { if(currentLineUrl) window.location.href = currentLineUrl; }, 3000);
-    } catch(e) { alert("เกิดข้อผิดพลาด"); btn.disabled = false; btn.textContent = "สั่งซื้ออีกครั้ง"; }
+    } catch(e) { 
+        showToast("เกิดข้อผิดพลาด", "error"); 
+        btn.disabled = false; 
+        btn.textContent = "สั่งซื้ออีกครั้ง"; 
+    }
 }
 
 window.toggleCart = toggleCart;
@@ -281,6 +312,6 @@ window.closeCheckout = closeCheckout;
 window.previewSlip = previewSlip;
 window.getCurrentLocation = getCurrentLocation;
 window.submitOrder = submitOrder;
-window.redirectToLine = () => { window.location.href = currentLineUrl; };
+window.redirectToLine = () => { if(currentLineUrl) window.location.href = currentLineUrl; };
 
 document.addEventListener('DOMContentLoaded', () => { loadProductsFromSheet(renderProducts); });

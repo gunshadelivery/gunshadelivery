@@ -1,17 +1,13 @@
 import './style.css';
 import Papa from 'papaparse';
 import Chart from 'chart.js/auto';
-
-const MASTER_PASS = "gunsha888";
-const ORDERS_CSV_URL = "https://docs.google.com/spreadsheets/d/1rczsaPil58aAm_kw1FdhopdJA0U6v6x2ELROaupP09g/export?format=csv&gid=1214202779";
-const PRODUCTS_CSV_URL = "https://docs.google.com/spreadsheets/d/1rczsaPil58aAm_kw1FdhopdJA0U6v6x2ELROaupP09g/gviz/tq?tqx=out:csv";
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzZHV5tAWeWmPGq9cI84I3RwpnrtdimMbdpMjXo0yQ-eemH4vZiz6hKoIyhk-1nuFc4ZA/exec";
+import { ADMIN_PASSWORD, ORDERS_CSV_URL, SHEET_CSV_URL as PRODUCTS_CSV_URL, GAS_URL, SHOP_NAME, SHOP_VERSION, getImgbbUploadUrl } from './config.js';
 
 let rawOrders = [];
 let rawProducts = [];
 let salesChart = null;
 let isEditMode = false;
-let originalVariants = []; // To track for deletion when updating variants
+let originalVariants = [];
 let oldProductName = "";
 
 // --- CUSTOM UI: TOAST ---
@@ -19,8 +15,7 @@ function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    const icon = type === 'success' ? '✅' : '❌';
-    toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+    toast.innerHTML = `<span>${message}</span>`;
     container.appendChild(toast);
     setTimeout(() => {
         toast.classList.add('hide');
@@ -29,7 +24,7 @@ function showToast(message, type = 'success') {
 }
 
 // --- CUSTOM UI: CONFIRM MODAL ---
-function customConfirm(title, message, icon = '⚠️') {
+function customConfirm(title, message, icon = '') {
     return new Promise((resolve) => {
         const modal = document.getElementById('confirmModal');
         document.getElementById('confirmTitle').innerText = title;
@@ -88,24 +83,19 @@ function removeVariant(btn) {
     else alert("ต้องมีอย่างน้อยหนึ่งตัวเลือกราคา");
 }
 
-// --- IMAGE COMPRESSION (Smart Retina & WebP) ---
+// --- IMAGE COMPRESSION ---
 function compressImage(file, maxWidth = 1000, quality = 0.8) {
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
+        const reader = new FileReader(); reader.readAsDataURL(file);
         reader.onload = e => {
-            const img = new Image();
-            img.src = e.target.result;
+            const img = new Image(); img.src = e.target.result;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
                 let width = img.width, height = img.height;
                 if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
                 canvas.width = width; canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                canvas.toBlob(blob => {
-                    resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".webp", { type: 'image/webp' }));
-                }, 'image/webp', quality);
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                canvas.toBlob(blob => { resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".webp", { type: 'image/webp' })); }, 'image/webp', quality);
             };
         };
         reader.onerror = reject;
@@ -115,7 +105,8 @@ function compressImage(file, maxWidth = 1000, quality = 0.8) {
 // --- TAB SYSTEM ---
 function switchTab(tabId) {
     document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
-    document.getElementById('view-' + tabId).classList.remove('hidden');
+    const viewEl = document.getElementById('view-' + tabId);
+    if (viewEl) viewEl.classList.remove('hidden');
     
     document.querySelectorAll('header button').forEach(b => b.classList.remove('bg-white', 'shadow-sm', 'text-emerald-600'));
     const activeBtn = document.getElementById('tab-' + tabId);
@@ -127,7 +118,7 @@ function switchTab(tabId) {
 
 // --- AUTH ---
 function checkPass() {
-    if (document.getElementById('passInput').value === MASTER_PASS) {
+    if (document.getElementById('passInput').value === ADMIN_PASSWORD) {
         localStorage.setItem('adminAuth', 'true');
         showToast("เข้าสู่ระบบเรียบร้อย", "success");
         showDashboard();
@@ -149,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- DASHBOARD DATA ---
 function loadData() {
+    if (!ORDERS_CSV_URL) return;
     Papa.parse(ORDERS_CSV_URL + "&t=" + Date.now(), {
         download: true, header: true, skipEmptyLines: true,
         complete: (results) => { rawOrders = results.data; processSales(); }
@@ -181,6 +173,34 @@ function processSales() {
         }
     });
 
+    // --- DEMO MODE: Mockup Data (สถิติและรายการออเดอร์จำลอง) ---
+    // ใช้การ += เพื่อให้ยอดขายจริงที่เกิดขึ้น ถูกบวกเพิ่มเข้าไปในยอดจำลองด้วย
+    totalLife += 125400; 
+    totalMonth += 48500 + Math.random() * 5000;
+    totalWeek += 12400 + Math.random() * 2000;
+    countMonth += 84; 
+    countWeek += 22;
+    
+    for(let i=0; i<14; i++) {
+        const d = new Date(); d.setDate(now.getDate() - i);
+        const key = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+        dailyStats[key] = (dailyStats[key] || 0) + 2500 + Math.random() * 4000;
+    }
+    const mockProducts = {"Wedding Cake": 30, "Miami Madness": 25, "Ghost Train Haze": 18, "Green Crack": 12};
+    Object.assign(productCounts, mockProducts);
+
+    // รายการออเดอร์จำลอง: ปรับให้เป็นชำระเงินแล้วทั้งหมดเพื่อความสวยงาม
+    const demoOrders = [
+        { "วันที่-เวลา": "30/4/2569 16:50:00", "ชื่อลูกค้า": "คุณอานนท์ (MOCKUP)", "เบอร์โทร": "082-111-2233", "ที่อยู่": "ลาดพร้าว ซอย 1", "ยอดรวม": "999", "สถานะ": "ชำระเงินแล้ว", "รายการสินค้า": "Wedding Cake (1G) x1", "ลิงก์สลิป": "https://via.placeholder.com/300?text=Slip+1", "ลิงก์แผนที่": "https://www.google.com/maps" },
+        { "วันที่-เวลา": "30/4/2569 15:20:12", "ชื่อลูกค้า": "คุณจิรายุ (MOCKUP)", "เบอร์โทร": "061-777-8899", "ที่อยู่": "สุขุมวิท 101", "ยอดรวม": "1450", "สถานะ": "ชำระเงินแล้ว", "รายการสินค้า": "Miami Madness (1G) x2", "ลิงก์สลิป": "https://via.placeholder.com/300?text=Slip+2", "ลิงก์แผนที่": "https://www.google.com/maps" },
+        { "วันที่-เวลา": "30/4/2569 13:12:44", "ชื่อลูกค้า": "คุณเมษา (MOCKUP)", "เบอร์โทร": "095-444-5566", "ที่อยู่": "นนทบุรี", "ยอดรวม": "2800", "สถานะ": "ชำระเงินแล้ว", "รายการสินค้า": "Ghost Train Haze (1G) x4", "ลิงก์สลิป": "https://via.placeholder.com/300?text=Slip+3", "ลิงก์แผนที่": "https://www.google.com/maps" }
+    ];
+    
+    // กรองเอาแถวที่ว่างจริงๆ ออก แล้วรวมกับข้อมูลจำลอง
+    rawOrders = rawOrders.filter(o => o["วันที่-เวลา"] && o["ชื่อลูกค้า"]);
+    rawOrders = [...rawOrders, ...demoOrders];
+    // -------------------------------------------------------
+
     document.getElementById('monthlyTotal').textContent = totalMonth.toLocaleString() + " ฿";
     document.getElementById('monthlyCount').textContent = `${countMonth} รายการ`;
     document.getElementById('weeklyTotal').textContent = totalWeek.toLocaleString() + " ฿";
@@ -200,7 +220,6 @@ function renderChart(dataMap) {
         labels.push(k); values.push(dataMap[k] || 0);
     }
     if (salesChart) salesChart.destroy();
-    
     salesChart = new Chart(ctx, {
         type: 'line', data: { labels, datasets: [{ data: values, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
@@ -219,36 +238,69 @@ function renderOrdersTable() {
     [...rawOrders].reverse().slice(0,20).forEach(order => {
         const isConfirmed = order["สถานะ"] === "ชำระเงินแล้ว";
         const displayIdentity = order["เบอร์โทร"] || order["ชื่อลูกค้า"] || "N/A";
-        
         const mapLink = order["ลิงก์แผนที่"] || "";
         const addressText = order["ที่อยู่"] || "";
-
-        body.innerHTML += `<tr>
-            <td class="px-6 py-4 text-xs font-mono">${order["วันที่-เวลา"].split('GMT')[0]}</td>
-            <td class="px-6 py-4">
-                <div class="flex flex-col">
-                    <span class="font-bold text-slate-700">${displayIdentity}</span>
-                    <div class="flex items-center gap-1">
-                        <span class="text-[10px] text-slate-400 truncate max-w-[150px]">${addressText}</span>
-                        ${mapLink ? `<a href="${mapLink}" target="_blank" class="text-[10px] bg-emerald-50 text-emerald-600 px-1 rounded border border-emerald-100 hover:bg-emerald-100 transition">📍 Map</a>` : ''}
+        const dateStr = order["วันที่-เวลา"] ? order["วันที่-เวลา"].split('GMT')[0].trim() : "N/A";
+        
+        body.innerHTML += `
+            <tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50">
+                <td class="px-6 py-4 w-[180px] text-[11px] font-mono text-slate-400 whitespace-nowrap">${dateStr}</td>
+                <td class="px-6 py-4">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-slate-700 text-sm">${displayIdentity}</span>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-slate-400 truncate max-w-[200px]">${addressText}</span>
+                            ${mapLink ? `<a href="${mapLink}" target="_blank" class="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 hover:bg-white transition flex items-center gap-0.5">แผนที่</a>` : ''}
+                        </div>
                     </div>
-                </div>
-            </td>
-            <td class="px-6 py-4 font-bold text-emerald-600 font-mono">${parseFloat(order["ยอดรวม"]).toLocaleString()}</td>
-            <td class="px-6 py-4"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isConfirmed?'bg-emerald-100 text-emerald-700':'bg-orange-100 text-orange-700'}">${order["สถานะ"]||"รอดำเนินการ"}</span></td>
-            <td class="px-6 py-4 flex gap-2">
-                <a href="${order["ลิงก์สลิป"]}" target="_blank" class="p-1 hover:bg-slate-100 rounded">🖼️</a>
-                ${!isConfirmed ? `<button onclick="updateConfirm('${order["ชื่อลูกค้า"].replace(/'/g, "\\'")}', '${order["ลิงก์สลิป"]}')" class="p-1 hover:bg-emerald-50 rounded">✅</button>` : ''}
-            </td>
-        </tr>`;
+                </td>
+                <td class="px-6 py-4 w-[120px] font-bold text-slate-700 font-mono text-sm text-right">${parseFloat(order["ยอดรวม"] || 0).toLocaleString()} ฿</td>
+                <td class="px-6 py-4 w-[120px] text-center">
+                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-tight ${isConfirmed?'bg-emerald-50 text-emerald-600 border border-emerald-100':'bg-amber-50 text-amber-600 border border-amber-100'}">
+                        ${order["สถานะ"]||"รอดำเนินการ"}
+                    </span>
+                </td>
+                <td class="px-6 py-4 w-[160px] text-right">
+                    <div class="flex justify-end gap-2">
+                        <a href="${order["ลิงก์สลิป"]}" target="_blank" 
+                           class="flex items-center gap-1 px-2.5 py-1.5 bg-white text-slate-600 text-[10px] font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition active:scale-95 shadow-sm">
+                            ดูสลิป
+                        </a>
+                        ${!isConfirmed ? `
+                        <button onclick="updateConfirm('${(order["ชื่อลูกค้า"] || "").replace(/'/g, "\\'")}', '${order["ลิงก์สลิป"]}')" 
+                                class="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition active:scale-95 shadow-md shadow-emerald-100">
+                            รับยอด
+                        </button>` : ''}
+                    </div>
+                </td>
+            </tr>`;
     });
 }
 
 async function updateConfirm(name, slip) {
-    if(!(await customConfirm("ยืนยันออเดอร์", `ต้องการยืนยันการรับเงินของคุณ ${name} ใช่หรือไม่?`, "💰"))) return;
-    showToast("กำลังอัปเดตสถานะ...", "success");
+    if(!(await customConfirm("ยืนยันออเดอร์", `ต้องการยืนยันการรับเงินของคุณ ${name} ใช่หรือไม่?`, ""))) return;
+    
+    // ค้นหาปุ่มที่ถูกกด
+    const btn = event.target;
+    const parent = btn.parentElement;
+    
+    btn.disabled = true;
+    btn.textContent = "กำลังอัปเดต...";
+    
     await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "updateStatus", name, slipUrl: slip, status: "ชำระเงินแล้ว" }) });
+    
     showToast("อัปเดตเรียบร้อย กรุณารอข้อมูลอัปเดตสักครู่", "success");
+    
+    // --- OPTIMISTIC UI: ซ่อนปุ่มรับยอด แต่ยังคงปุ่มดูสลิปไว้ ---
+    parent.innerHTML = `
+        <button onclick="viewSlip('${slip}')" 
+                class="px-2.5 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-slate-200 transition">
+            ดูสลิป
+        </button>
+        <span class="text-[10px] text-emerald-600 font-bold ml-1">ยืนยันแล้ว</span>
+    `;
+    
+    // หน่วงเวลาโหลดข้อมูลใหม่เพื่อให้ Google Sheets มีเวลาอัปเดต CSV
     setTimeout(loadData, 5000);
 }
 
@@ -256,16 +308,12 @@ async function updateConfirm(name, slip) {
 function loadProducts() {
     Papa.parse(PRODUCTS_CSV_URL + "&t=" + Date.now(), {
         download: true, header: true, skipEmptyLines: true,
-        complete: (results) => { 
-            rawProducts = results.data; 
-            renderProductsTable(); 
-        }
+        complete: (results) => { rawProducts = results.data; renderProductsTable(); }
     });
 }
 
 function renderProductsTable() {
     const body = document.getElementById('productTableBody'); body.innerHTML = "";
-    // Group by name for listing
     const grouped = {};
     rawProducts.forEach(p => {
         if(!p.name) return;
@@ -279,7 +327,7 @@ function renderProductsTable() {
     Object.values(grouped).forEach(p => {
         const outOfStock = p.totalStock <= 0 || ['หมด','0','sold out'].includes(p.status?.toLowerCase());
         body.innerHTML += `<tr>
-            <td class="px-6 py-3"><img src="${p.image}" class="w-10 h-10 object-cover rounded-lg bg-slate-100" onerror="this.src='https://via.placeholder.com/40?text=🌿'"></td>
+            <td class="px-6 py-3"><img src="${p.image}" class="w-10 h-10 object-cover rounded-lg bg-slate-100" onerror="this.outerHTML='<div class=\\'w-10 h-10 bg-slate-100 rounded-lg\\'></div>'"></td>
             <td class="px-6 py-3 font-bold">${p.name}</td>
             <td class="px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">${p.category || 'N/A'}</span></td>
             <td class="px-6 py-3 text-slate-500 text-xs">${p.sizes.join(', ')}</td>
@@ -311,7 +359,7 @@ function toggleProductModal(show, mode = 'add') {
     if(!show) {
         document.getElementById('productForm').reset();
         document.getElementById('variantContainer').innerHTML = "";
-        addVariant(); // Default row
+        addVariant();
     }
     modal.classList.toggle('hidden', !show); 
 }
@@ -319,26 +367,21 @@ function toggleProductModal(show, mode = 'add') {
 function editProduct(name) {
     const variants = rawProducts.filter(p => p.name === name);
     if(variants.length === 0) return;
-
     const base = variants[0];
     oldProductName = name;
     originalVariants = variants.map(v => ({ size: v.size, price: v.price }));
-
     document.getElementById('pName').value = base.name;
     document.getElementById('pCategory').value = base.category || "Hybrid";
     document.getElementById('pNote').value = base.note || "";
     document.getElementById('pTags').value = base.tags || "";
     document.getElementById('productForm').dataset.existingImage = base.image || "";
-
-    const container = document.getElementById('variantContainer');
-    container.innerHTML = "";
+    const container = document.getElementById('variantContainer'); container.innerHTML = "";
     variants.forEach(v => addVariant(v.size, v.price, v.stock, v.sold_count));
-
     toggleProductModal(true, 'edit');
 }
 
 async function deleteFullProduct(name) {
-    if(!(await customConfirm("ลบสินค้า", `คุณแน่ใจใช่ไหมที่จะลบ "${name}" ออกจากระบบถาวร?`, "🗑️"))) return;
+    if(!(await customConfirm("ลบสินค้า", `คุณแน่ใจใช่ไหมที่จะลบ "${name}" ออกจากระบบถาวร?`, ""))) return;
     showToast("กำลังลบข้อมูล...", "success");
     const variants = rawProducts.filter(p => p.name === name);
     for(let v of variants) {
@@ -355,21 +398,13 @@ async function saveProduct() {
     const category = document.getElementById('pCategory').value;
     const note = document.getElementById('pNote').value;
     const tags = document.getElementById('pTags').value;
-    
     const variantRows = document.querySelectorAll('.variant-row');
     const isHerb = ["Indica", "Sativa", "Hybrid"].includes(category);
-    
     const variants = Array.from(variantRows).map(row => {
         let sizeVal = row.querySelector('.v-size').value;
-        if (!sizeVal && !isHerb) sizeVal = "Standard"; // Default for accessories
+        if (!sizeVal && !isHerb) sizeVal = "Standard";
         if (sizeVal && !sizeVal.toString().endsWith('G') && isHerb) sizeVal += 'G';
-        
-        return {
-            size: sizeVal,
-            price: row.querySelector('.v-price').value,
-            stock: row.querySelector('.v-stock').value || 0,
-            sold: row.querySelector('.v-sold').value || 0
-        };
+        return { size: sizeVal, price: row.querySelector('.v-price').value, stock: row.querySelector('.v-stock').value || 0, sold: row.querySelector('.v-sold').value || 0 };
     }).filter(v => v.size && v.price && (isHerb ? v.size !== 'G' : true));
 
     if(!name || variants.length === 0) return alert("กรุณากรอกข้อมูลที่สำคัญให้ครบ");
@@ -378,95 +413,44 @@ async function saveProduct() {
     btn.innerHTML = isEditMode ? "กำลังบันทึก..." : "กำลังอัปโหลดรูป...";
 
     let imageUrl = document.getElementById('productForm').dataset.existingImage || "";
-    if (fileInput.files.length > 0) {
+    const imgbbUrl = getImgbbUploadUrl();
+    if (fileInput.files.length > 0 && imgbbUrl) {
         try {
-            btn.innerHTML = "กำลังบีบอัดรูปภาพ (Retina)...";
+            btn.innerHTML = "กำลังบีบอัดรูปภาพ...";
             const optimizedImg = await compressImage(fileInput.files[0]);
-            
             btn.innerHTML = "กำลังอัปโหลดรูปภาพ...";
-            const formData = new FormData();
-            formData.append('image', optimizedImg);
-            const imgRes = await fetch(`https://api.imgbb.com/1/upload?key=467157500c7b535f4c9839accf416565`, { method: 'POST', body: formData });
+            const formData = new FormData(); formData.append('image', optimizedImg);
+            const imgRes = await fetch(imgbbUrl, { method: 'POST', body: formData });
             const imgData = await imgRes.json();
             if (imgData.success) imageUrl = imgData.data.url;
-        } catch(e) { 
-            console.error("Img Upload Fail", e); 
-            showToast("อัปโหลดรูปภาพล้มเหลว", "error");
-        }
+        } catch(e) { console.error("Img Upload Fail", e); showToast("อัปโหลดรูปภาพล้มเหลว", "error"); }
     }
 
     try {
         if(isEditMode) {
-            // Smart Update: Determine which variants to update, add, or delete
-            const toUpdate = [];
-            const toAdd = [];
-            
-            variants.forEach((v, idx) => {
-                if (idx < originalVariants.length) {
-                    toUpdate.push({ 
-                        variant: v, 
-                        oldSize: originalVariants[idx].size 
-                    });
-                } else {
-                    toAdd.push(v);
-                }
-            });
-
+            const toUpdate = [], toAdd = [];
+            variants.forEach((v, idx) => { if (idx < originalVariants.length) toUpdate.push({ variant: v, oldSize: originalVariants[idx].size }); else toAdd.push(v); });
             const toDelete = originalVariants.slice(variants.length);
-
-            // 1. Update existing variants
-            for (let item of toUpdate) {
-                const payload = {
-                    action: "updateProduct",
-                    oldName: oldProductName,
-                    oldSize: item.oldSize,
-                    name, category, note, tags, image: imageUrl,
-                    size: item.variant.size, price: item.variant.price,
-                    stock: item.variant.stock, sold_count: item.variant.sold,
-                    status: parseInt(item.variant.stock) > 0 ? "มีของ" : "หมด"
-                };
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            for (let item of toUpdate) { 
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "updateProduct", oldName: oldProductName.trim(), oldSize: item.oldSize.toString().trim(), name: name.trim(), category, note, tags, image: imageUrl, size: item.variant.size.toString().trim(), price: item.variant.price, stock: item.variant.stock, sold_count: item.variant.sold, status: parseInt(item.variant.stock) > 0 ? "มีของ" : "หมด" }) });
             }
-
-            // 2. Add new variants
-            for (let v of toAdd) {
-                const payload = {
-                    action: "addProduct",
-                    name, category, note, tags, image: imageUrl,
-                    size: v.size, price: v.price,
-                    stock: v.stock, sold_count: v.sold,
-                    status: parseInt(v.stock) > 0 ? "มีของ" : "หมด"
-                };
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            for (let v of toAdd) { 
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "addProduct", name: name.trim(), category, note, tags, image: imageUrl, size: v.size.toString().trim(), price: v.price, stock: v.stock, sold_count: v.sold, status: parseInt(v.stock) > 0 ? "มีของ" : "หมด" }) });
             }
-
-            // 3. Delete removed variants
-            for (let oldV of toDelete) {
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "deleteProduct", name: oldProductName, size: oldV.size }) });
+            for (let oldV of toDelete) { 
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "deleteProduct", name: oldProductName.trim(), size: oldV.size.toString().trim() }) });
             }
-
         } else {
-            // Standard Add Mode
-            for(let variant of variants) {
-                const payload = {
-                    action: "addProduct",
-                    name, category, note, tags, image: imageUrl,
-                    size: variant.size, price: variant.price,
-                    stock: variant.stock, sold_count: variant.sold,
-                    status: parseInt(variant.stock) > 0 ? "มีของ" : "หมด"
-                };
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            for(let variant of variants) { 
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "addProduct", name: name.trim(), category, note, tags, image: imageUrl, size: variant.size.toString().trim(), price: variant.price, stock: variant.stock, sold_count: variant.sold, status: parseInt(variant.stock) > 0 ? "มีของ" : "หมด" }) });
             }
         }
-
         showToast(isEditMode ? "แก้ไขข้อมูลสำเร็จ!" : "เพิ่มสินค้าสำเร็จ!", "success");
-        toggleProductModal(false);
-        loadProducts();
-    } catch (err) {
+        toggleProductModal(false); loadProducts();
+    } catch (err) { 
         showToast("เกิดข้อผิดพลาดในการบันทึก", "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = isEditMode ? "บันทึกการแก้ไข" : "บันทึกและขึ้นขายทันที";
+    } finally { 
+        btn.disabled = false; btn.innerHTML = isEditMode ? "บันทึกการแก้ไข" : "บันทึกและขึ้นขายทันที"; 
     }
 }
 

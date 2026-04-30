@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gunsha Delivery - สดใหม่ ส่งไว ถึงมือ 🌿</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Kanit', sans-serif; -webkit-tap-highlight-color: transparent; }
         .cart-open { transform: translateX(0); }
@@ -58,8 +59,8 @@
             <div class="flex items-center gap-2 cursor-pointer" onclick="handleLogoClick()">
                 <span class="text-xl">🌿</span>
                 <div class="flex flex-col">
-                    <h1 class="text-lg font-bold leading-none">Cannabis Delivery</h1>
-                    <span class="text-[10px] opacity-60 font-bold">v1.2.1</span>
+                    <h1 class="text-lg font-bold leading-none">GUNSHA Delivery</h1>
+                    <span class="text-[10px] opacity-60 font-bold">v2.0.0 Premium</span>
                 </div>
             </div>
             <button onclick="toggleCart()" class="relative p-2">
@@ -72,9 +73,9 @@
     </nav>
 
     <!-- HERO / PROMO -->
-    <header class="bg-emerald-700 text-white px-4 py-8 text-center pb-20 rounded-b-[3rem] shadow-inner mb-[-3rem]">
-        <h2 class="text-2xl font-bold mb-2">คุณภาพพรีเมียม ส่งตรงถึงหน้าบ้าน</h2>
-        <p class="text-emerald-100 text-sm opacity-90">ชำระเงินผ่านแอป แล้วรอรับของได้เลย!</p>
+    <header class="bg-emerald-700 text-white px-4 py-10 text-center pb-24 rounded-b-[3.5rem] shadow-inner mb-[-3.5rem]">
+        <h2 class="text-3xl font-black mb-2 tracking-tight">GUNSHA DELIVERY</h2>
+        <p class="text-emerald-100 text-sm opacity-90 font-medium">คุณภาพระดับพรีเมียม ส่งตรงถึงมือคุณ 🌿</p>
     </header>
 
     <!-- SEARCH & FILTER -->
@@ -183,8 +184,8 @@
     </div>
 
     <!-- CART SIDEBAR (OVERLAY) -->
-    <div id="cartOverlay" class="fixed inset-0 bg-black/40 z-50 hidden backdrop-blur-sm transition-opacity duration-300" onclick="toggleCart()"></div>
-    <div id="cartSidebar" class="fixed top-0 right-0 h-full w-[85%] max-w-sm bg-white z-50 shadow-2xl transition-transform duration-300 transform translate-x-full flex flex-col">
+    <div id="cartOverlay" class="fixed inset-0 bg-black/40 z-[60] hidden backdrop-blur-sm transition-opacity duration-300" onclick="toggleCart()"></div>
+    <div id="cartSidebar" class="fixed top-0 right-0 h-full w-[85%] max-w-sm bg-white z-[60] shadow-2xl transition-transform duration-300 transform translate-x-full flex flex-col">
         <div class="p-6 border-b flex justify-between items-center bg-emerald-600 text-white">
             <h3 class="text-xl font-bold flex items-center gap-2">ตะกร้าสินค้า <span id="cartTotalCount" class="text-sm font-normal opacity-80">(0)</span></h3>
             <button onclick="toggleCart()" class="p-2 hover:bg-emerald-700 rounded-full transition-colors">
@@ -196,7 +197,7 @@
             <!-- Cart items will be here -->
         </div>
 
-        <div class="p-6 border-t bg-slate-50 space-y-4">
+        <div class="p-6 pb-24 border-t bg-slate-50 space-y-4">
             <div class="flex justify-between items-center text-slate-500 text-sm">
                 <span>ยอดรวมสินค้า</span>
                 <span id="cartSubtotal" class="font-bold text-slate-800 text-lg">0.00 ฿</span>
@@ -206,7 +207,7 @@
     </div>
 
     <!-- CHECKOUT MODAL -->
-    <div id="checkoutModal" class="fixed inset-0 z-[60] bg-black/60 hidden backdrop-blur-md flex items-center justify-center p-4">
+    <div id="checkoutModal" class="fixed inset-0 z-[70] bg-black/60 hidden backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300">
             <div class="p-6 border-b flex justify-between items-center">
                 <h3 class="text-xl font-bold text-slate-800">รายละเอียดการจัดส่ง</h3>
@@ -267,6 +268,6 @@
     </nav>
 
     <!-- SCRIPTS -->
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="./src/main.js"></script>
 </body>
 </html>

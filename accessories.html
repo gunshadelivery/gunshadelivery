@@ -21,17 +21,28 @@
         .category-tab-inactive { background-color: white; color: #64748b; border: 1px solid #f1f5f9; }
         .animate-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Toast Styles */
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 350px; }
+        .toast { pointer-events: auto; padding: 12px 20px; border-radius: 20px; color: white; font-weight: 600; font-size: 14px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; }
+        @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast.success { background: #10b981; border: 1px solid #059669; }
+        .toast.error { background: #ef4444; border: 1px solid #dc2626; }
+        .toast.hide { animation: slideOut 0.3s forwards; }
+        @keyframes slideOut { to { transform: translateY(-20px); opacity: 0; } }
     </style>
 </head>
 <body class="pb-24">
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
     <!-- NAVBAR -->
     <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100">
         <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <span class="text-xl">🏺</span>
                 <div class="flex flex-col">
-                    <h1 class="text-lg font-bold leading-none text-slate-800">Shop Accessories</h1>
-                    <span class="text-[10px] opacity-60 font-bold uppercase tracking-wider text-slate-400">อุปกรณ์ & บ้อง</span>
+                    <h1 class="text-lg font-bold leading-none text-slate-800">GUNSHA Accessories</h1>
+                    <span class="text-[10px] opacity-60 font-bold uppercase tracking-wider text-slate-400">Premium Gear v2.0.0</span>
                 </div>
             </div>
             <button onclick="toggleCart()" class="relative p-2 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
@@ -76,7 +87,7 @@
     </div>
 
     <!-- CART SIDEBAR (MODAL) -->
-    <div id="cartSidebar" class="fixed inset-0 z-50 hidden">
+    <div id="cartSidebar" class="fixed inset-0 z-[60] hidden">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="toggleCart()"></div>
         <div class="absolute bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[40px] shadow-2xl h-[85vh] flex flex-col transform translate-y-full transition-transform duration-300" id="cartContent">
             <div class="p-6 border-b border-slate-50 flex justify-between items-center">
@@ -88,7 +99,7 @@
             <div id="cartItems" class="flex-1 overflow-y-auto p-6 space-y-4">
                 <!-- Cart Items -->
             </div>
-            <div class="p-8 bg-slate-50/50 rounded-t-[40px]">
+            <div class="p-8 pb-24 bg-slate-50/50 rounded-t-[40px]">
                 <div class="flex justify-between items-center mb-6">
                     <span class="text-slate-500 font-medium">ยอดรวมทั้งหมด</span>
                     <span id="cartTotal" class="text-2xl font-black text-slate-800">0 ฿</span>
@@ -99,7 +110,7 @@
     </div>
 
     <!-- CHECKOUT MODAL -->
-    <div id="checkoutModal" class="fixed inset-0 z-[60] hidden">
+    <div id="checkoutModal" class="fixed inset-0 z-[70] hidden">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
         <div class="absolute inset-x-0 bottom-0 top-10 bg-white rounded-t-[40px] flex flex-col max-w-md mx-auto">
             <div class="p-6 border-b border-slate-50 flex justify-between items-center">
@@ -183,6 +194,6 @@
     </nav>
 
     <!-- SCRIPTS -->
-    <script type="module" src="/src/accessories.js"></script>
+    <script type="module" src="./src/accessories.js"></script>
 </body>
 </html>

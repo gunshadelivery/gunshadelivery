@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ฝ่ายบริหาร - Gunsha Delivery 🌿</title>
+    <title>ฝ่ายบริหาร - Gunsha Delivery</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Kanit', sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
@@ -29,7 +30,7 @@
     <!-- CUSTOM CONFIRM MODAL -->
     <div id="confirmModal" class="fixed inset-0 z-[200] bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-white p-6 rounded-[2.5rem] shadow-2xl w-full max-w-xs text-center animate-in zoom-in duration-300">
-            <div class="text-4xl mb-4" id="confirmIcon">⚠️</div>
+            <div class="text-4xl mb-4 text-emerald-600" id="confirmIcon"></div>
             <h3 class="text-xl font-bold text-slate-800 mb-2" id="confirmTitle">ยืนยันการทำรายการ</h3>
             <p class="text-slate-500 text-sm mb-6" id="confirmMsg">คุณแน่ใจใช่ไหมที่จะดำเนินการต่อ?</p>
             <div class="flex gap-3">
@@ -42,7 +43,7 @@
     <!-- LOGIN OVERLAY -->
     <div id="loginOverlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-emerald-900/40 backdrop-blur-md">
         <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
-            <div class="text-4xl mb-4">🔐</div>
+            <div class="text-4xl mb-4 text-emerald-600 font-bold">LOGIN</div>
             <h2 class="text-2xl font-bold mb-6 text-slate-800">เข้าสู่ระบบหลังบ้าน</h2>
             <input type="password" id="passInput" placeholder="รหัสผ่าน..." 
                 class="w-full px-4 py-3 border rounded-xl mb-4 focus:ring-2 focus:ring-emerald-500 outline-none text-center text-lg">
@@ -57,15 +58,15 @@
         <header class="bg-white border-b sticky top-0 z-40">
             <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <span class="text-2xl cursor-pointer" onclick="location.href='index.html'">🌿</span>
+                    <span class="text-2xl font-bold text-emerald-600 cursor-pointer" onclick="location.href='index.html'">GS</span>
                     <div class="flex flex-col">
                         <h1 class="text-xl font-bold text-slate-800 leading-none">Admin Panel</h1>
                         <span class="text-[10px] text-slate-400 font-bold">v1.2.1</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
-                    <button onclick="switchTab('overview')" id="tab-overview" class="px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-emerald-600">📊 สรุปยอดขาย</button>
-                    <button onclick="switchTab('products')" id="tab-products" class="px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-emerald-600">📦 จัดการสินค้า</button>
+                    <button onclick="switchTab('overview')" id="tab-overview" class="px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-emerald-600">สรุปยอดขาย</button>
+                    <button onclick="switchTab('products')" id="tab-products" class="px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-emerald-600">จัดการสินค้า</button>
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="logout()" class="text-slate-400 hover:text-red-500 transition text-sm">Logout</button>
@@ -76,20 +77,21 @@
         <!-- OVERVIEW TAB -->
         <main id="view-overview" class="max-w-6xl mx-auto p-4 md:p-8 space-y-8 animate-in fade-in duration-500">
             <!-- SUMMARY CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden group">
-                    <div class="absolute -right-2 -bottom-2 text-emerald-50 opacity-40 text-8xl font-bold transition-transform group-hover:scale-110">฿</div>
+
                     <p class="text-slate-500 text-sm font-medium mb-1 relative z-10">ยอดขายเดือนนี้</p>
                     <h2 id="monthlyTotal" class="text-3xl font-extrabold text-emerald-600 relative z-10">0.00 ฿</h2>
                     <p id="monthlyCount" class="text-xs text-slate-400 mt-2 relative z-10">กำลังโหลด...</p>
                 </div>
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden group">
-                    <div class="absolute -right-2 -bottom-2 text-blue-50 opacity-40 text-8xl font-bold transition-transform group-hover:scale-110">📅</div>
+
                     <p class="text-slate-500 text-sm font-medium mb-1 relative z-10">ยอดขายสัปดาห์นี้</p>
                     <h2 id="weeklyTotal" class="text-3xl font-extrabold text-blue-600 relative z-10">0.00 ฿</h2>
                     <p id="weeklyCount" class="text-xs text-slate-400 mt-2 relative z-10">กำลังโหลด...</p>
                 </div>
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden group">
-                    <div class="absolute -right-2 -bottom-2 text-orange-50 opacity-40 text-8xl font-bold transition-transform group-hover:scale-110">✨</div>
+
                     <p class="text-slate-500 text-sm font-medium mb-1 relative z-10">ยอดเฉลี่ยต่อออเดอร์</p>
                     <h2 id="avgOrder" class="text-3xl font-extrabold text-orange-500 relative z-10">0.00 ฿</h2>
                     <p id="totalLifetime" class="text-xs text-slate-400 mt-2 relative z-10">กำลังโหลด...</p>
@@ -99,11 +101,11 @@
             <!-- TREND & CHARTS -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                    <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">📈 แนวโน้มยอดขาย</h3>
+                    <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">แนวโน้มยอดขาย</h3>
                     <div class="h-64"><canvas id="salesChart"></canvas></div>
                 </div>
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                    <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">🔥 สินค้าขายดี</h3>
+                    <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">สินค้าขายดี</h3>
                     <div id="topProductsList" class="space-y-4"></div>
                 </div>
             </div>
@@ -177,18 +179,18 @@
                 <form id="productForm" class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">ชื่อสายพันธุ์ *</label>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">ชื่อสินค้า / สายพันธุ์ *</label>
                             <input type="text" id="pName" required class="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="เช่น Ice Cream Cake">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">หมวดหมู่ *</label>
                             <select id="pCategory" class="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
-                                <option value="Indica">🌿 Indica</option>
-                                <option value="Sativa">☀️ Sativa</option>
-                                <option value="Hybrid">🧬 Hybrid</option>
-                                <option value="Accessories">🏺 อุปกรณ์/บ้อง</option>
-                                <option value="Rolling">📝 กระดาษ/มวน</option>
-                                <option value="Other">✨ อื่นๆ</option>
+                                <option value="Indica">Indica</option>
+                                <option value="Sativa">Sativa</option>
+                                <option value="Hybrid">Hybrid</option>
+                                <option value="Accessories">อุปกรณ์/บ้อง</option>
+                                <option value="Rolling">กระดาษ/มวน</option>
+                                <option value="Other">อื่นๆ</option>
                             </select>
                         </div>
                     </div>
@@ -251,6 +253,6 @@
         </div>
     </div>
 
-    <script type="module" src="/src/adminApp.js"></script>
+    <script type="module" src="./src/adminApp.js"></script>
 </body>
 </html>

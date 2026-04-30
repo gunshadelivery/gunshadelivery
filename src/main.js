@@ -1,9 +1,7 @@
 import './style.css';
 import Papa from 'papaparse';
 import confetti from 'canvas-confetti';
-
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1rczsaPil58aAm_kw1FdhopdJA0U6v6x2ELROaupP09g/gviz/tq?tqx=out:csv";
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzZHV5tAWeWmPGq9cI84I3RwpnrtdimMbdpMjXo0yQ-eemH4vZiz6hKoIyhk-1nuFc4ZA/exec";
+import { SHEET_CSV_URL, GAS_URL, SHOP_NAME, SHOP_VERSION, buildLineUrl, getImgbbUploadUrl } from './config.js';
 
 let products = []; // Keyed by Name
 let cart = [];
@@ -303,7 +301,7 @@ function previewSlip(input) {
     }
 }
 
-// --- NEW: Geolocation Helper ---
+// --- Geolocation Helper ---
 function getCurrentLocation(event) {
     const btn = event.currentTarget;
     const originalText = btn.innerHTML;
@@ -344,10 +342,12 @@ function getCurrentLocation(event) {
 
 async function submitOrder() {
     const btn = document.getElementById('confirmBtn');
+    const imgbbUrl = getImgbbUploadUrl();
+    
     const data = {
-        name: "Customer (" + document.getElementById('custPhone').value + ")", // Use Phone as placeholder name
+        name: "Customer (" + document.getElementById('custPhone').value + ")", 
         phone: document.getElementById('custPhone').value,
-        address: "Google Maps Pin: " + document.getElementById('custMap').value, // Use Pin as address
+        address: "Google Maps Pin: " + document.getElementById('custMap').value,
         map: document.getElementById('custMap').value,
         slip: document.getElementById('slipInput').files[0]
     };
@@ -360,7 +360,7 @@ async function submitOrder() {
     try {
         // 1. Upload Slip
         const formData = new FormData(); formData.append('image', data.slip);
-        const imgRes = await fetch(`https://api.imgbb.com/1/upload?key=467157500c7b535f4c9839accf416565`, { method: 'POST', body: formData });
+        const imgRes = await fetch(imgbbUrl, { method: 'POST', body: formData });
         const imgData = await imgRes.json();
         if(!imgData.success) throw new Error("Upload Fail");
 
@@ -377,15 +377,24 @@ async function submitOrder() {
             })
         });
 
-        // 3. To LINE & Celebration
-        const lineMsg = `🌿 ออเดอร์ใหม่! [GUNSHA v1.2.1]\n📞 เบอร์: ${data.phone}\n📍 พิกัดจัดส่ง: ${data.map}\n\n🛒 รายการ:\n${orderItems}\n💰 ยอดรวม: ${subtotal} บาท\n\n🖼️ สลิป: ${imgData.data.url}`;
+        // 3. Premium LINE Message
+        const itemsDetail = cart.map(i => `- ${i.name.toUpperCase()} [${i.size}] x${i.qty}`).join('\n');
+        const lineMsg = `🌿 ออเดอร์ใหม่! [${SHOP_NAME} v${SHOP_VERSION}]
+📞 เบอร์: ${data.phone}
+📍 พิกัดจัดส่ง: ${data.map}
+
+🛒 รายการ:
+${itemsDetail}
+💰 ยอดรวม: ${subtotal.toLocaleString()} บาท
+
+🖼️ สลิป: ${imgData.data.url}`;
         
         // --- CELEBRATION ---
         document.getElementById('finalOrderTotal').textContent = subtotal.toLocaleString() + " ฿";
         document.getElementById('successModal').classList.remove('hidden');
         
-        // Store LINE URL for manual redirect if needed
-        currentLineUrl = `line://oaMessage/@059rkyoa/?${encodeURIComponent(lineMsg)}`;
+        // Build direct OA URL
+        currentLineUrl = buildLineUrl(lineMsg);
         
         confetti({
             particleCount: 150,
