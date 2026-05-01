@@ -153,29 +153,57 @@ function processSales() {
     const oneMonthAgo = new Date(); oneMonthAgo.setDate(now.getDate() - 30);
 
     let totalLife = 0, totalMonth = 0, totalWeek = 0, countMonth = 0, countWeek = 0;
+    let pendingTotal = 0, pendingCount = 0;
     const productCounts = {}, dailyStats = {};
 
+    // กรองข้อมูลที่ว่างออก (Cleanup empty rows)
+    rawOrders = rawOrders.filter(o => {
+        // หาค่าใน Object ว่ามีข้อมูลสำคัญอย่าง "เบอร์โทร" หรือ "ยอดรวม" หรือไม่
+        const hasData = Object.values(o).some(v => v && v.toString().trim() !== "");
+        return hasData;
+    });
+
     rawOrders.forEach(order => {
-        const orderDate = new Date(order["วันที่-เวลา"]);
-        const total = parseFloat(order["ยอดรวม"]) || 0;
-        if (order["สถานะ"] === "ชำระเงินแล้ว") {
+        // พยายามหา key ที่อาจมีช่องว่างหรือ BOM
+        const getVal = (keys) => {
+            for (let k of keys) { if (order[k] !== undefined) return order[k]; }
+            // fallback: ค้นหา key ที่มีคำที่ต้องการอยู่ข้างใน
+            const foundKey = Object.keys(order).find(ok => keys.some(target => ok.includes(target)));
+            return foundKey ? order[foundKey] : undefined;
+        };
+
+        const status = (getVal(["สถานะ", "status"]) || "").toString().trim();
+        const total = parseFloat(getVal(["ยอดรวม", "total"]) || 0);
+        const dateRaw = getVal(["วันที่-เวลา", "Timestamp", "date"]);
+        const orderDate = dateRaw ? new Date(dateRaw) : new Date();
+        const items = getVal(["รายการสินค้า", "items"]);
+
+        // นับสถิติ (เฉพาะที่ชำระเงินแล้ว)
+        if (status === "ชำระเงินแล้ว") {
             totalLife += total;
             if (orderDate >= oneMonthAgo) { totalMonth += total; countMonth++; }
             if (orderDate >= oneWeekAgo) { totalWeek += total; countWeek++; }
             const dKey = orderDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
             if (orderDate >= (new Date().setDate(now.getDate()-14))) dailyStats[dKey] = (dailyStats[dKey] || 0) + total;
-            if (order["รายการสินค้า"]) {
-                order["รายการสินค้า"].split(',').forEach(it => {
+            
+            if (items) {
+                items.split(',').forEach(it => {
                     const n = it.split('(')[0].trim();
                     productCounts[n] = (productCounts[n] || 0) + 1;
                 });
             }
+        } else if (status === "รอดำเนินการ" || status === "") {
+            // นับยอดที่รอรับ (Pending)
+            pendingTotal += total;
+            pendingCount++;
         }
     });
 
-    // กรองข้อมูลที่ว่างออกเพื่อให้แสดงผลเฉพาะข้อมูลจริง
-    rawOrders = rawOrders.filter(o => o["วันที่-เวลา"] && o["ชื่อลูกค้า"]);
-
+    // แสดงผลยอดที่รอรับ (UI Feedback)
+    const pendingLabel = document.getElementById('totalLifetime');
+    if (pendingLabel) {
+        pendingLabel.innerHTML = `รวมทั้งหมด ${totalLife.toLocaleString()} ฿ <span class="ml-2 text-amber-500">(รอรับยอด: ${pendingTotal.toLocaleString()} ฿)</span>`;
+    }
 
     document.getElementById('monthlyTotal').textContent = totalMonth.toLocaleString() + " ฿";
     document.getElementById('monthlyCount').textContent = `${countMonth} รายการ`;
@@ -212,11 +240,24 @@ function renderTop(counts) {
 function renderOrdersTable() {
     const body = document.getElementById('orderTableBody'); body.innerHTML = "";
     [...rawOrders].reverse().slice(0,20).forEach(order => {
-        const isConfirmed = order["สถานะ"] === "ชำระเงินแล้ว";
-        const displayIdentity = order["เบอร์โทร"] || order["ชื่อลูกค้า"] || "N/A";
-        const mapLink = order["ลิงก์แผนที่"] || "";
-        const addressText = order["ที่อยู่"] || "";
-        const dateStr = order["วันที่-เวลา"] ? order["วันที่-เวลา"].split('GMT')[0].trim() : "N/A";
+        // Helper to get value with multiple potential keys
+        const getVal = (keys) => {
+            for (let k of keys) { if (order[k] !== undefined) return order[k]; }
+            const foundKey = Object.keys(order).find(ok => keys.some(target => ok.includes(target)));
+            return foundKey ? order[foundKey] : "";
+        };
+
+        const status = (getVal(["สถานะ", "status"]) || "รอดำเนินการ").toString().trim();
+        const isConfirmed = status === "ชำระเงินแล้ว";
+        const phone = getVal(["เบอร์โทร", "phone"]);
+        const custName = getVal(["ชื่อลูกค้า", "name"]);
+        const displayIdentity = phone || custName || "N/A";
+        const mapLink = getVal(["ลิงก์แผนที่", "mapUrl", "map"]) || "";
+        const addressText = getVal(["ที่อยู่", "address"]) || "";
+        const dateRaw = getVal(["วันที่-เวลา", "Timestamp", "date"]);
+        const dateStr = dateRaw ? dateRaw.toString().split('GMT')[0].trim() : "N/A";
+        const total = parseFloat(getVal(["ยอดรวม", "total"]) || 0);
+        const slip = getVal(["ลิงก์สลิป", "slipUrl", "slip"]);
         
         body.innerHTML += `
             <tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50">
@@ -230,20 +271,20 @@ function renderOrdersTable() {
                         </div>
                     </div>
                 </td>
-                <td class="px-6 py-4 w-[120px] font-bold text-slate-700 font-mono text-sm text-right">${parseFloat(order["ยอดรวม"] || 0).toLocaleString()} ฿</td>
+                <td class="px-6 py-4 w-[120px] font-bold text-slate-700 font-mono text-sm text-right">${total.toLocaleString()} ฿</td>
                 <td class="px-6 py-4 w-[120px] text-center">
                     <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-tight ${isConfirmed?'bg-emerald-50 text-emerald-600 border border-emerald-100':'bg-amber-50 text-amber-600 border border-amber-100'}">
-                        ${order["สถานะ"]||"รอดำเนินการ"}
+                        ${status}
                     </span>
                 </td>
                 <td class="px-6 py-4 w-[160px] text-right">
                     <div class="flex justify-end gap-2">
-                        <a href="${order["ลิงก์สลิป"]}" target="_blank" 
+                        <a href="${slip}" target="_blank" 
                            class="flex items-center gap-1 px-2.5 py-1.5 bg-white text-slate-600 text-[10px] font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition active:scale-95 shadow-sm">
                             ดูสลิป
                         </a>
                         ${!isConfirmed ? `
-                        <button onclick="window.updateConfirm(this, '${(order["ชื่อลูกค้า"] || "").replace(/'/g, "\\'")}', '${order["ลิงก์สลิป"]}')" 
+                        <button onclick="window.updateConfirm(this, '${(custName || "").replace(/'/g, "\\'")}', '${slip}')" 
                                 class="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition active:scale-95 shadow-md shadow-emerald-100">
                             รับยอด
                         </button>` : ''}
