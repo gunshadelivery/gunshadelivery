@@ -1,31 +1,33 @@
+function doGet(e) {
+  var action = e.parameter.action;
+  var sheetOrders = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Orders");
+  var sheetProducts = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Product List");
+
+  if (action === "getOrders") {
+    var data = sheetOrders.getDataRange().getValues();
+    return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  if (action === "getProducts") {
+    var data = sheetProducts.getDataRange().getValues();
+    return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
 function doPost(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetOrders = ss.getSheetByName("Orders");
+  var sheetProducts = ss.getSheetByName("Product List");
+  var contents = JSON.parse(e.postData.contents);
+  var action = contents.action;
+
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheetOrders = ss.getSheetByName("Orders");
-    var sheetProducts = ss.getSheets()[0]; // Product List
-
-    // Initialize Orders sheet if not exists
-    if (!sheetOrders) {
-      sheetOrders = ss.insertSheet("Orders");
-      sheetOrders.appendRow(["วันที่-เวลา", "ชื่อลูกค้า", "เบอร์โทร", "ที่อยู่", "ลิงก์แผนที่", "รายการสินค้า", "ยอดรวม", "ลิงก์สลิป", "สถานะ"]);
-      sheetOrders.getRange(1, 1, 1, 9).setFontWeight("bold").setBackground("#d1e7dd");
-    }
-
-    // Initialize Products header if new sheet
-    if (sheetProducts.getLastRow() === 0) {
-      sheetProducts.appendRow(["ชื่อ", "ขนาด", "ราคา", "คำอธิบาย", "รูปภาพ", "แท็ก", "สถานะ", "สต็อก", "ขายแล้ว", "หมวดหมู่"]);
-      sheetProducts.getRange(1, 1, 1, 10).setFontWeight("bold").setBackground("#e2e8f0");
-    }
-
-    var contents = JSON.parse(e.postData.contents);
-    var action = contents.action || "log";
-
     // --- CASE 1: Log new order ---
     if (action === "log") {
-      // แทรกแถวใหม่ที่แถวที่ 2 (ต่อจากหัวข้อ) เพื่อให้ออเดอร์ใหม่อยู่บนสุดเสมอ
+      // แทรกแถวใหม่ที่แถวที่ 2 (บนสุดต่อจาก Header)
       sheetOrders.insertRowBefore(2);
-      var rowData = [
-        new Date(),
+      var newRow = [
+        new Date(), // Timestamp
         contents.name,
         contents.phone,
         contents.address,
@@ -33,31 +35,28 @@ function doPost(e) {
         contents.items,
         contents.total,
         contents.slipUrl,
-        "รอดำเนินการ"
+        contents.status || "รอดำเนินการ"
       ];
-      sheetOrders.getRange(2, 1, 1, 9).setValues([rowData]);
+      sheetOrders.getRange(2, 1, 1, newRow.length).setValues([newRow]);
 
-      // --- NEW: Update Stock and Sold Count ---
-      if (contents.itemsArray && Array.isArray(contents.itemsArray)) {
-        var productData = sheetProducts.getDataRange().getValues();
-        contents.itemsArray.forEach(function(orderItem) {
-          for (var i = 1; i < productData.length; i++) {
-            // Match Name and Size
-            if (productData[i][0] == orderItem.name && productData[i][1] == orderItem.size) {
-              var currentStock = parseInt(productData[i][7]) || 0;
-              var currentSold = parseInt(productData[i][8]) || 0;
-              var newStock = Math.max(0, currentStock - orderItem.qty);
-              var newSold = currentSold + orderItem.qty;
-              
-              // Update Stock (Col H) and Sold Count (Col I)
+      // ตัดสต็อกสินค้า
+      if (contents.itemsArray) {
+        var products = sheetProducts.getDataRange().getValues();
+        contents.itemsArray.forEach(function(item) {
+          for (var i = 1; i < products.length; i++) {
+            if (products[i][0] == item.name && products[i][1] == item.size) {
+              var currentStock = parseInt(products[i][7]) || 0;
+              var currentSold = parseInt(products[i][8]) || 0;
+              var newStock = currentStock - item.qty;
+              var newSold = currentSold + item.qty;
               sheetProducts.getRange(i + 1, 8).setValue(newStock);
               sheetProducts.getRange(i + 1, 9).setValue(newSold);
-
-              // If stock is 0, update status to "หมด" (Col G)
+              
+              // ปรับสถานะอัตโนมัติถ้าของหมด
               if (newStock <= 0) {
                 sheetProducts.getRange(i + 1, 7).setValue("หมด");
               }
-              break; 
+              break;
             }
           }
         });
@@ -67,21 +66,17 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    // --- CASE 2: Update existing order status ---
+    // --- CASE 2: Update status ---
     if (action === "updateStatus") {
       var data = sheetOrders.getDataRange().getValues();
-      var name = contents.name;
-      var slipUrl = contents.slipUrl;
-
       for (var i = 1; i < data.length; i++) {
-        if (data[i][1] == name && data[i][7] == slipUrl) {
+        // ตรวจสอบชื่อลูกค้าและลิงก์สลิปเพื่อให้แม่นยำ
+        if (data[i][1] == contents.name && data[i][7] == contents.slipUrl) {
           sheetOrders.getRange(i + 1, 9).setValue(contents.status);
           return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
             .setMimeType(ContentService.MimeType.JSON);
         }
       }
-      return ContentService.createTextOutput(JSON.stringify({ "result": "not found" }))
-        .setMimeType(ContentService.MimeType.JSON);
     }
 
     // --- CASE 3: Add new product ---
@@ -93,7 +88,7 @@ function doPost(e) {
         contents.note,
         contents.image,
         contents.tags,
-        contents.status || "มีของ",
+        contents.status,
         contents.stock || 0,
         contents.sold_count || 0,
         contents.category || ""
@@ -128,8 +123,6 @@ function doPost(e) {
             .setMimeType(ContentService.MimeType.JSON);
         }
       }
-      return ContentService.createTextOutput(JSON.stringify({ "result": "not found" }))
-        .setMimeType(ContentService.MimeType.JSON);
     }
 
     // --- CASE 5: Delete product ---
@@ -149,9 +142,11 @@ function doPost(e) {
       }
     }
 
-  } catch (f) {
-    return ContentService.createTextOutput(JSON.stringify({ "result": "error", "error": f.toString() }))
+    return ContentService.createTextOutput(JSON.stringify({ "result": "action not found" }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ "result": "error", "error": err.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
-
