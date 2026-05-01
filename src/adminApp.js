@@ -7,6 +7,9 @@ let rawOrders = [];
 let rawProducts = [];
 let salesChart = null;
 let isEditMode = false;
+let currentPage = 1; // หน้าปัจจุบันของออเดอร์
+const ITEMS_PER_PAGE = 10;
+const MAX_PAGES = 5;
 let originalVariants = [];
 let oldProductName = "";
 
@@ -250,10 +253,14 @@ function renderTop(counts) {
 function renderOrdersTable() {
     const body = document.getElementById('orderTableBody'); body.innerHTML = "";
     
-    // เรียงลำดับจากใหม่ไปเก่า (อิงตามลำดับใน Google Sheets ที่มักจะต่อท้าย)
+    // กรองและเรียงลำดับ
     const sortedOrders = [...rawOrders].reverse();
+    
+    // คำนวณขอบเขตการแสดงผลตามหน้า (Pagination)
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-    sortedOrders.slice(0, 50).forEach(order => {
+    paginatedOrders.forEach(order => {
         const keys = Object.keys(order);
         const getVal = (targets) => {
             for (let t of targets) { if (order[t] !== undefined) return order[t]; }
@@ -315,6 +322,30 @@ function renderOrdersTable() {
                 </td>
             </tr>`;
     });
+
+    renderPagination(sortedOrders.length);
+}
+
+function renderPagination(totalItems) {
+    const container = document.getElementById('orderPagination');
+    container.innerHTML = "";
+    
+    const totalPagesAvailable = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    const finalPageCount = Math.min(totalPagesAvailable, MAX_PAGES);
+
+    if (finalPageCount <= 1) return;
+
+    for (let i = 1; i <= finalPageCount; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = `w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === i ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100' : 'bg-white text-slate-500 border border-slate-200 hover:border-emerald-300'}`;
+        btn.onclick = () => {
+            currentPage = i;
+            renderOrdersTable();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        container.appendChild(btn);
+    }
 }
 
 async function updateConfirm(btn, name, slip) {
