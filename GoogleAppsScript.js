@@ -22,7 +22,9 @@ function doPost(e) {
 
     // --- CASE 1: Log new order ---
     if (action === "log") {
-      sheetOrders.appendRow([
+      // แทรกแถวใหม่ที่แถวที่ 2 (ต่อจากหัวข้อ) เพื่อให้ออเดอร์ใหม่อยู่บนสุดเสมอ
+      sheetOrders.insertRowBefore(2);
+      var rowData = [
         new Date(),
         contents.name,
         contents.phone,
@@ -32,7 +34,8 @@ function doPost(e) {
         contents.total,
         contents.slipUrl,
         "รอดำเนินการ"
-      ]);
+      ];
+      sheetOrders.getRange(2, 1, 1, 9).setValues([rowData]);
 
       // --- NEW: Update Stock and Sold Count ---
       if (contents.itemsArray && Array.isArray(contents.itemsArray)) {

@@ -294,7 +294,7 @@ async function submitOrder() {
         const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 
         await fetch(GAS_URL, {
-            method: 'POST', mode: 'no-cors',
+            method: 'POST',
             body: JSON.stringify({
                 action: "log", name: "AccCust (" + phone + ")", phone, address: "Map: " + map,
                 mapUrl: map, items: orderItems, itemsArray: itemsArray, total: subtotal, slipUrl: imgData.data.url, status: "รอดำเนินการ"
