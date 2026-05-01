@@ -173,33 +173,9 @@ function processSales() {
         }
     });
 
-    // --- DEMO MODE: Mockup Data (สถิติและรายการออเดอร์จำลอง) ---
-    // ใช้การ += เพื่อให้ยอดขายจริงที่เกิดขึ้น ถูกบวกเพิ่มเข้าไปในยอดจำลองด้วย
-    totalLife += 125400; 
-    totalMonth += 48500 + Math.random() * 5000;
-    totalWeek += 12400 + Math.random() * 2000;
-    countMonth += 84; 
-    countWeek += 22;
-    
-    for(let i=0; i<14; i++) {
-        const d = new Date(); d.setDate(now.getDate() - i);
-        const key = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-        dailyStats[key] = (dailyStats[key] || 0) + 2500 + Math.random() * 4000;
-    }
-    const mockProducts = {"Wedding Cake": 30, "Miami Madness": 25, "Ghost Train Haze": 18, "Green Crack": 12};
-    Object.assign(productCounts, mockProducts);
-
-    // รายการออเดอร์จำลอง: ปรับให้เป็นชำระเงินแล้วทั้งหมดเพื่อความสวยงาม
-    const demoOrders = [
-        { "วันที่-เวลา": "30/4/2569 16:50:00", "ชื่อลูกค้า": "คุณอานนท์ (MOCKUP)", "เบอร์โทร": "082-111-2233", "ที่อยู่": "ลาดพร้าว ซอย 1", "ยอดรวม": "999", "สถานะ": "ชำระเงินแล้ว", "รายการสินค้า": "Wedding Cake (1G) x1", "ลิงก์สลิป": "https://via.placeholder.com/300?text=Slip+1", "ลิงก์แผนที่": "https://www.google.com/maps" },
-        { "วันที่-เวลา": "30/4/2569 15:20:12", "ชื่อลูกค้า": "คุณจิรายุ (MOCKUP)", "เบอร์โทร": "061-777-8899", "ที่อยู่": "สุขุมวิท 101", "ยอดรวม": "1450", "สถานะ": "ชำระเงินแล้ว", "รายการสินค้า": "Miami Madness (1G) x2", "ลิงก์สลิป": "https://via.placeholder.com/300?text=Slip+2", "ลิงก์แผนที่": "https://www.google.com/maps" },
-        { "วันที่-เวลา": "30/4/2569 13:12:44", "ชื่อลูกค้า": "คุณเมษา (MOCKUP)", "เบอร์โทร": "095-444-5566", "ที่อยู่": "นนทบุรี", "ยอดรวม": "2800", "สถานะ": "ชำระเงินแล้ว", "รายการสินค้า": "Ghost Train Haze (1G) x4", "ลิงก์สลิป": "https://via.placeholder.com/300?text=Slip+3", "ลิงก์แผนที่": "https://www.google.com/maps" }
-    ];
-    
-    // กรองเอาแถวที่ว่างจริงๆ ออก แล้วรวมกับข้อมูลจำลอง
+    // กรองข้อมูลที่ว่างออกเพื่อให้แสดงผลเฉพาะข้อมูลจริง
     rawOrders = rawOrders.filter(o => o["วันที่-เวลา"] && o["ชื่อลูกค้า"]);
-    rawOrders = [...rawOrders, ...demoOrders];
-    // -------------------------------------------------------
+
 
     document.getElementById('monthlyTotal').textContent = totalMonth.toLocaleString() + " ฿";
     document.getElementById('monthlyCount').textContent = `${countMonth} รายการ`;
