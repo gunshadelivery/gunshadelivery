@@ -52,15 +52,19 @@ function customConfirm(title, message, icon = '') {
 
 // --- VARIANT MANAGEMENT ---
 function addVariant(size="", price="", stock=0, sold=0) {
-    const cleanSize = size.toString().replace('G', '');
+    const category = document.getElementById('pCategory').value;
+    const isAccessory = ["Accessories", "Rolling", "Other"].includes(category);
+    const unitLabel = isAccessory ? "ชิ้น" : "G";
+    const cleanSize = size.toString().replace('G', '').replace('ชิ้น', '');
+    
     const row = document.createElement('div');
     row.className = 'variant-row flex items-center gap-2 animate-in fade-in slide-in-from-top-1 bg-slate-50 p-3 rounded-2xl border border-slate-100';
     row.innerHTML = `
         <div class="w-20">
-            <label class="text-[10px] text-slate-400 font-bold uppercase">ขนาด</label>
+            <label class="text-[10px] text-slate-400 font-bold uppercase">${isAccessory ? "ประเภท/รุ่น" : "ขนาด"}</label>
             <div class="relative mt-1">
-                <input type="number" step="0.1" placeholder="G" value="${cleanSize}" class="v-size w-full border rounded-lg pl-2 pr-5 py-1.5 text-xs focus:ring-1 focus:ring-emerald-500 outline-none">
-                <span class="absolute right-1.5 top-1.5 text-slate-400 text-[10px] font-bold">G</span>
+                <input type="${isAccessory ? 'text' : 'number'}" step="0.1" placeholder="${unitLabel}" value="${cleanSize}" class="v-size w-full border rounded-lg pl-2 pr-7 py-1.5 text-xs focus:ring-1 focus:ring-emerald-500 outline-none">
+                <span class="absolute right-1.5 top-1.5 text-slate-400 text-[10px] font-bold">${unitLabel}</span>
             </div>
         </div>
         <div class="w-16">
@@ -138,6 +142,23 @@ function showDashboard() {
 function logout() { localStorage.removeItem('adminAuth'); location.reload(); }
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadData();
+    loadProducts();
+    
+    // ดักการเปลี่ยนหมวดหมู่เพื่อปรับหน่วย (G หรือ ชิ้น)
+    document.getElementById('pCategory').addEventListener('change', (e) => {
+        const isAccessory = ["Accessories", "Rolling", "Other"].includes(e.target.value);
+        const unitLabel = isAccessory ? "ชิ้น" : "G";
+        const rows = document.querySelectorAll('.variant-row');
+        rows.forEach(row => {
+            row.querySelector('label').textContent = isAccessory ? "ประเภท/รุ่น" : "ขนาด";
+            row.querySelector('span').textContent = unitLabel;
+            const input = row.querySelector('.v-size');
+            input.placeholder = unitLabel;
+            input.type = isAccessory ? "text" : "number";
+        });
+    });
+
     if (localStorage.getItem('adminAuth') === 'true') showDashboard();
 });
 
