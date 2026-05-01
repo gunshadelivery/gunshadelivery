@@ -24,7 +24,7 @@ function classifyStrain(name) {
     if (STRAIN_DB.hybrid.some(h => n.includes(h))) return "Hybrid";
     if (STRAIN_DB.accessories.some(a => n.includes(a))) return "Accessories";
     if (STRAIN_DB.rolling.some(r => n.includes(r))) return "Rolling";
-    
+
     return "Other"; // Default for unknown strains
 }
 
@@ -76,13 +76,13 @@ function handleLogoClick() {
 function loadProductsFromSheet(callback) {
     Papa.parse(SHEET_CSV_URL, {
         download: true, header: true,
-        complete: function(results) {
+        complete: function (results) {
             const data = results.data;
             const grouped = {};
-            
+
             data.forEach(item => {
-                if(!item.name) return;
-                if(!grouped[item.name]) {
+                if (!item.name) return;
+                if (!grouped[item.name]) {
                     let tags = [];
                     if (item.tags) tags = item.tags.split(',').map(t => t.trim()).filter(t => t !== '');
                     grouped[item.name] = {
@@ -97,10 +97,10 @@ function loadProductsFromSheet(callback) {
                         aiType: item["หมวดหมู่"] || classifyStrain(item.name) // Use manual category if available, otherwise AI
                     };
                 }
-                
+
                 const stock = parseInt(item.stock) || 0;
                 const sold = parseInt(item.sold_count) || 0;
-                
+
                 grouped[item.name].variants.push({
                     size: item.size || '1G',
                     price: parseFloat(item.price) || 0,
@@ -123,15 +123,15 @@ function renderProducts(filter = "") {
     // If filter is an object (due to event listener binding instead of direct call), handle it.
     let q = "";
     if (typeof filter === "string") q = filter.toLowerCase();
-    
+
     // Apply Filters: Search + Category
     const filtered = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(q) || p.note.toLowerCase().includes(q);
         const matchesCategory = currentCategory === "All" || p.aiType === currentCategory;
-        
+
         // Main page ONLY shows Herbs (Indica, Sativa, Hybrid) + Other (if it doesn't match Accessories/Rolling)
         const isAccessory = ["Accessories", "Rolling"].includes(p.aiType);
-        
+
         return matchesSearch && matchesCategory && !isAccessory;
     });
 
@@ -144,14 +144,14 @@ function renderProducts(filter = "") {
         const card = document.createElement("div");
         card.className = "bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col";
         const isOutOfStock = p.status === 'หมด' || p.status === 'sold out' || p.status === '0';
-        
+
         // Select Current Variant
         const variant = p.variants[p.selectedVariantIdx];
         const isVariantOutOfStock = variant.stock <= 0;
 
         // Priority loading for top items
         const priorityAttr = products.indexOf(p) < 4 ? 'fetchpriority="high"' : 'loading="lazy"';
-        
+
         // Use name as identifier to avoid index mismatch in filtered views
         const pNameEscaped = p.name.replace(/'/g, "\\'");
 
@@ -204,8 +204,8 @@ function switchCategory(cat) {
         t.classList.replace('category-tab-active', 'category-tab-inactive');
     });
     const tabEl = document.getElementById('tab-' + cat);
-    if(tabEl) tabEl.classList.replace('category-tab-inactive', 'category-tab-active');
-    
+    if (tabEl) tabEl.classList.replace('category-tab-inactive', 'category-tab-active');
+
     // Check if search input exists
     const searchInput = document.getElementById('searchInput');
     renderProducts(searchInput ? searchInput.value : "");
@@ -225,7 +225,7 @@ function addToCart(pName, vIdx) {
     const product = products.find(p => p.name === pName);
     if (!product) return;
     const variant = product.variants[vIdx];
-    
+
     const existing = cart.find(item => item.name === product.name && item.size === variant.size);
     if (existing) existing.qty++;
     else cart.push({ name: product.name, size: variant.size, price: variant.price, qty: 1, image: product.image });
@@ -255,28 +255,33 @@ function updateCartUI() {
     document.getElementById("cartTotalCount").textContent = `(${count})`;
 
     let subtotal = 0;
-    container.innerHTML = cart.length === 0 ? `<div class="text-center py-20 text-slate-400">ยังไม่มีสินค้าในตะกร้า</div>` : '';
-    
-    cart.forEach((item, idx) => {
-        subtotal += item.price * item.qty;
-        container.innerHTML += `
-            <div class="flex gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <img src="${item.image}" class="w-16 h-16 object-cover rounded-xl bg-white shadow-sm" onerror="this.outerHTML='🌿';">
-                <div class="flex-1">
-                    <h4 class="font-bold text-slate-800 text-sm">${item.name}</h4>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">${item.size}</p>
-                    <div class="flex justify-between items-center mt-2">
-                        <p class="text-emerald-600 font-bold text-sm">${(item.price * item.qty).toLocaleString()} ฿</p>
-                        <div class="flex items-center gap-3">
-                            <button onclick="window.updateQty(${idx}, -1)" class="w-6 h-6 border flex items-center justify-center p-1 rounded-full">-</button>
-                            <span class="text-sm font-bold">${item.qty}</span>
-                            <button onclick="window.updateQty(${idx}, 1)" class="w-6 h-6 border flex items-center justify-center p-1 rounded-full">+</button>
+    let cartHTML = '';
+
+    if (cart.length === 0) {
+        cartHTML = `<div class="text-center py-20 text-slate-400">ยังไม่มีสินค้าในตะกร้า</div>`;
+    } else {
+        cartHTML = cart.map((item, idx) => {
+            subtotal += item.price * item.qty;
+            return `
+                <div class="flex gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                    <img src="${item.image}" class="w-16 h-16 object-cover rounded-xl bg-white shadow-sm" onerror="this.outerHTML='🌿';">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-slate-800 text-sm">${item.name}</h4>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">${item.size}</p>
+                        <div class="flex justify-between items-center mt-2">
+                            <p class="text-emerald-600 font-bold text-sm">${(item.price * item.qty).toLocaleString()} ฿</p>
+                            <div class="flex items-center gap-3">
+                                <button onclick="window.updateQty(${idx}, -1)" class="w-6 h-6 border flex items-center justify-center p-1 rounded-full">-</button>
+                                <span class="text-sm font-bold">${item.qty}</span>
+                                <button onclick="window.updateQty(${idx}, 1)" class="w-6 h-6 border flex items-center justify-center p-1 rounded-full">+</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>`;
-    });
+                </div>`;
+        }).join('');
+    }
 
+    container.innerHTML = cartHTML;
     subtotalEl.textContent = subtotal.toLocaleString() + " ฿";
     checkoutBtn.disabled = cart.length === 0;
 }
@@ -343,16 +348,16 @@ function getCurrentLocation(event) {
 async function submitOrder() {
     const btn = document.getElementById('confirmBtn');
     const imgbbUrl = getImgbbUploadUrl();
-    
+
     const data = {
-        name: "Customer (" + document.getElementById('custPhone').value + ")", 
+        name: "Customer (" + document.getElementById('custPhone').value + ")",
         phone: document.getElementById('custPhone').value,
         address: "Google Maps Pin: " + document.getElementById('custMap').value,
         map: document.getElementById('custMap').value,
         slip: document.getElementById('slipInput').files[0]
     };
 
-    if(!data.phone || !data.map || !data.slip) return showToast("กรุณากรอกข้อมูลและแนบสลิปให้ครบถ้วน", "error");
+    if (!data.phone || !data.map || !data.slip) return showToast("กรุณากรอกข้อมูลและแนบสลิปให้ครบถ้วน", "error");
 
     btn.disabled = true;
     btn.innerHTML = "กำลังบันทึกออเดอร์...";
@@ -362,7 +367,7 @@ async function submitOrder() {
         const formData = new FormData(); formData.append('image', data.slip);
         const imgRes = await fetch(imgbbUrl, { method: 'POST', body: formData });
         const imgData = await imgRes.json();
-        if(!imgData.success) throw new Error("Upload Fail");
+        if (!imgData.success) throw new Error("Upload Fail");
 
         // 2. Log to Sheet
         let orderItems = cart.map(i => `${i.name} [${i.size}] x${i.qty}`).join(', ');
@@ -388,14 +393,14 @@ ${itemsDetail}
 💰 ยอดรวม: ${subtotal.toLocaleString()} บาท
 
 🖼️ สลิป: ${imgData.data.url}`;
-        
+
         // --- CELEBRATION ---
         document.getElementById('finalOrderTotal').textContent = subtotal.toLocaleString() + " ฿";
         document.getElementById('successModal').classList.remove('hidden');
-        
+
         // Build direct OA URL
         currentLineUrl = buildLineUrl(lineMsg);
-        
+
         confetti({
             particleCount: 150,
             spread: 70,
@@ -407,7 +412,7 @@ ${itemsDetail}
         setTimeout(() => {
             if (currentLineUrl) window.location.href = currentLineUrl;
         }, 3000);
-    } catch(e) {
+    } catch (e) {
         showToast("เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่อีกครั้ง", "error");
         btn.disabled = false;
         btn.innerHTML = "ยืนยันและสั่งซื้อ";

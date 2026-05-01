@@ -122,18 +122,29 @@ function renderProducts(filter = "") {
         const isOutOfStock = p.status === 'หมด' || p.status === 'sold out' || p.status === '0';
         const variant = p.variants[p.selectedVariantIdx];
         const isVariantOutOfStock = variant.stock <= 0;
+        const pNameEscaped = p.name.replace(/'/g, "\\'");
 
         card.innerHTML = `
             <div class="aspect-square bg-slate-50 rounded-2xl mb-3 relative overflow-hidden">
                 <img src="${p.image}" class="w-full h-full object-cover ${isOutOfStock || isVariantOutOfStock ? 'grayscale opacity-50' : ''}" onerror="this.outerHTML='<span class=\\'text-3xl flex items-center justify-center h-full\\'>🏺</span>';" />
                 ${(isOutOfStock || isVariantOutOfStock) ? `<div class="absolute inset-0 flex items-center justify-center"><span class="bg-slate-900 text-white text-[10px] font-bold px-3 py-1 rounded-full">หมด</span></div>` : ''}
             </div>
-            <div class="flex-1">
+            <div class="flex-1 flex flex-col">
                 <h3 class="font-bold text-slate-800 text-sm line-clamp-1">${p.name}</h3>
                 <p class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${p.note}</p>
-                <div class="mt-2 flex items-center justify-between">
+                
+                <!-- VARIANT SELECTOR -->
+                <div class="mt-2 flex flex-wrap gap-1">
+                    ${p.variants.length > 1 ? p.variants.map((v, vIdx) => `
+                        <button onclick="window.selectVariant('${pNameEscaped}', ${vIdx})" class="px-2 py-0.5 text-[9px] border rounded-lg transition-all font-bold ${p.selectedVariantIdx === vIdx ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white text-slate-400 border-slate-100'}">
+                            ${v.size}
+                        </button>
+                    `).join('') : ''}
+                </div>
+
+                <div class="mt-auto pt-3 flex items-center justify-between">
                     <p class="font-black text-slate-900 text-sm">${variant.price.toLocaleString()} ฿</p>
-                    <button onclick="window.addToCart('${p.name.replace(/'/g, "\\'")}', ${p.selectedVariantIdx})" ${isOutOfStock || isVariantOutOfStock ? 'disabled' : ''} class="w-8 h-8 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-slate-800 transition active:scale-90 disabled:opacity-20">
+                    <button onclick="window.addToCart('${pNameEscaped}', ${p.selectedVariantIdx})" ${isOutOfStock || isVariantOutOfStock ? 'disabled' : ''} class="w-8 h-8 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-slate-800 transition active:scale-90 disabled:opacity-20">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     </button>
                 </div>
@@ -141,6 +152,14 @@ function renderProducts(filter = "") {
         `;
         grid.appendChild(card);
     });
+}
+
+function selectVariant(pName, vIdx) {
+    const product = products.find(p => p.name === pName);
+    if (product) {
+        product.selectedVariantIdx = vIdx;
+        renderProducts();
+    }
 }
 
 function switchCategory(cat) {
@@ -190,23 +209,30 @@ function updateCartUI() {
     badge.textContent = count;
     badge.classList.toggle("hidden", count === 0);
     let total = 0;
-    container.innerHTML = cart.length === 0 ? `<div class="text-center py-20 text-slate-400">รถเข็นว่างเปล่า</div>` : '';
-    cart.forEach((item, idx) => {
-        total += item.price * item.qty;
-        container.innerHTML += `
-            <div class="flex gap-4 items-center">
-                <img src="${item.image}" class="w-16 h-16 object-cover rounded-2xl bg-slate-50">
-                <div class="flex-1">
-                    <h4 class="font-bold text-slate-800 text-sm">${item.name}</h4>
-                    <p class="text-xs text-slate-900 font-black mt-1">${item.price.toLocaleString()} ฿</p>
-                </div>
-                <div class="flex items-center gap-3 bg-slate-50 p-2 rounded-xl">
-                    <button onclick="window.updateQty(${idx}, -1)" class="w-6 h-6 flex items-center justify-center font-bold">-</button>
-                    <span class="text-xs font-bold w-4 text-center">${item.qty}</span>
-                    <button onclick="window.updateQty(${idx}, 1)" class="w-6 h-6 flex items-center justify-center font-bold">+</button>
-                </div>
-            </div>`;
-    });
+    let cartHTML = '';
+
+    if (cart.length === 0) {
+        cartHTML = `<div class="text-center py-20 text-slate-400">รถเข็นว่างเปล่า</div>`;
+    } else {
+        cartHTML = cart.map((item, idx) => {
+            total += item.price * item.qty;
+            return `
+                <div class="flex gap-4 items-center">
+                    <img src="${item.image}" class="w-16 h-16 object-cover rounded-2xl bg-slate-50">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-slate-800 text-sm">${item.name}</h4>
+                        <p class="text-xs text-slate-900 font-black mt-1">${item.price.toLocaleString()} ฿</p>
+                    </div>
+                    <div class="flex items-center gap-3 bg-slate-50 p-2 rounded-xl">
+                        <button onclick="window.updateQty(${idx}, -1)" class="w-6 h-6 flex items-center justify-center font-bold">-</button>
+                        <span class="text-xs font-bold w-4 text-center">${item.qty}</span>
+                        <button onclick="window.updateQty(${idx}, 1)" class="w-6 h-6 flex items-center justify-center font-bold">+</button>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    container.innerHTML = cartHTML;
     totalEl.textContent = total.toLocaleString() + " ฿";
 }
 
@@ -263,14 +289,15 @@ async function submitOrder() {
         if(!imgData.success) throw new Error("Upload Fail");
 
         // 2. Log to Sheet
-        const orderItems = cart.map(i => `${i.name} x${i.qty}`).join(', ');
+        const orderItems = cart.map(i => `${i.name} [${i.size}] x${i.qty}`).join(', ');
+        const itemsArray = cart.map(i => ({ name: i.name, size: i.size, qty: i.qty }));
         const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 
         await fetch(GAS_URL, {
             method: 'POST', mode: 'no-cors',
             body: JSON.stringify({
                 action: "log", name: "AccCust (" + phone + ")", phone, address: "Map: " + map,
-                mapUrl: map, items: orderItems, total: subtotal, slipUrl: imgData.data.url, status: "รอดำเนินการ"
+                mapUrl: map, items: orderItems, itemsArray: itemsArray, total: subtotal, slipUrl: imgData.data.url, status: "รอดำเนินการ"
             })
         });
 
@@ -305,6 +332,7 @@ ${itemsDetail}
 
 window.toggleCart = toggleCart;
 window.switchCategory = switchCategory;
+window.selectVariant = selectVariant;
 window.addToCart = addToCart;
 window.updateQty = updateQty;
 window.goToCheckout = goToCheckout;

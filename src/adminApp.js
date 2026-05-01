@@ -267,7 +267,7 @@ function renderOrdersTable() {
                             ดูสลิป
                         </a>
                         ${!isConfirmed ? `
-                        <button onclick="updateConfirm('${(order["ชื่อลูกค้า"] || "").replace(/'/g, "\\'")}', '${order["ลิงก์สลิป"]}')" 
+                        <button onclick="window.updateConfirm(this, '${(order["ชื่อลูกค้า"] || "").replace(/'/g, "\\'")}', '${order["ลิงก์สลิป"]}')" 
                                 class="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition active:scale-95 shadow-md shadow-emerald-100">
                             รับยอด
                         </button>` : ''}
@@ -277,11 +277,9 @@ function renderOrdersTable() {
     });
 }
 
-async function updateConfirm(name, slip) {
+async function updateConfirm(btn, name, slip) {
     if(!(await customConfirm("ยืนยันออเดอร์", `ต้องการยืนยันการรับเงินของคุณ ${name} ใช่หรือไม่?`, ""))) return;
     
-    // ค้นหาปุ่มที่ถูกกด
-    const btn = event.target;
     const parent = btn.parentElement;
     
     btn.disabled = true;
@@ -293,10 +291,10 @@ async function updateConfirm(name, slip) {
     
     // --- OPTIMISTIC UI: ซ่อนปุ่มรับยอด แต่ยังคงปุ่มดูสลิปไว้ ---
     parent.innerHTML = `
-        <button onclick="viewSlip('${slip}')" 
-                class="px-2.5 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-slate-200 transition">
+        <a href="${slip}" target="_blank" 
+           class="flex items-center gap-1 px-2.5 py-1.5 bg-white text-slate-600 text-[10px] font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition active:scale-95 shadow-sm">
             ดูสลิป
-        </button>
+        </a>
         <span class="text-[10px] text-emerald-600 font-bold ml-1">ยืนยันแล้ว</span>
     `;
     
