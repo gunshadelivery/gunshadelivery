@@ -160,25 +160,33 @@ function processSales() {
 
     // กรองข้อมูลที่ว่างออก (Cleanup empty rows)
     rawOrders = rawOrders.filter(o => {
-        // หาค่าใน Object ว่ามีข้อมูลสำคัญอย่าง "เบอร์โทร" หรือ "ยอดรวม" หรือไม่
-        const hasData = Object.values(o).some(v => v && v.toString().trim() !== "");
-        return hasData;
+        // กรองเอาเฉพาะแถวที่มีข้อมูลตัวตนลูกค้า (ชื่อ หรือ เบอร์โทร) เท่านั้น
+        const vals = Object.values(o).map(v => (v || "").toString().trim());
+        const hasIdentity = vals.some(v => v.length > 2); // มีข้อมูลที่ยาวกว่า 2 ตัวอักษร
+        return hasIdentity;
     });
 
     rawOrders.forEach(order => {
-        // พยายามหา key ที่อาจมีช่องว่างหรือ BOM
-        const getVal = (keys) => {
-            for (let k of keys) { if (order[k] !== undefined) return order[k]; }
-            // fallback: ค้นหา key ที่มีคำที่ต้องการอยู่ข้างใน
-            const foundKey = Object.keys(order).find(ok => keys.some(target => ok.includes(target)));
-            return foundKey ? order[foundKey] : undefined;
+        const keys = Object.keys(order);
+        const getVal = (targets) => {
+            // 1. หาตามชื่อ Key ตรงๆ
+            for (let t of targets) { if (order[t] !== undefined) return order[t]; }
+            // 2. หาตาม Partial Match
+            const foundK = keys.find(k => targets.some(t => k.toLowerCase().includes(t.toLowerCase())));
+            if (foundK) return order[foundK];
+            // 3. Fallback ตามลำดับคอลัมน์ (Index)
+            if (targets.includes("วันที่") || targets.includes("time")) return order[keys[0]];
+            if (targets.includes("ชื่อ") || targets.includes("name")) return order[keys[1]];
+            if (targets.includes("เบอร์") || targets.includes("phone")) return order[keys[2]];
+            if (targets.includes("ยอด") || targets.includes("total")) return order[keys[6]]; // คอลัมน์ G
+            return undefined;
         };
 
         const status = (getVal(["สถานะ", "status"]) || "").toString().trim();
-        const total = parseFloat(getVal(["ยอดรวม", "total"]) || 0);
+        const total = parseFloat(getVal(["ยอดรวม", "total", "ราคา", "price"]) || 0);
         const dateRaw = getVal(["วันที่-เวลา", "Timestamp", "date"]);
         const orderDate = dateRaw ? new Date(dateRaw) : new Date();
-        const items = getVal(["รายการสินค้า", "items"]);
+        const items = getVal(["รายการสินค้า", "items", "รายการ"]);
 
         // นับสถิติ (เฉพาะที่ชำระเงินแล้ว)
         if (status === "ชำระเงินแล้ว") {
@@ -246,23 +254,31 @@ function renderOrdersTable() {
     const sortedOrders = [...rawOrders].reverse();
 
     sortedOrders.slice(0, 50).forEach(order => {
-        // Helper to get value with multiple potential keys
-        const getVal = (keys) => {
-            for (let k of keys) { if (order[k] !== undefined) return order[k]; }
-            const foundKey = Object.keys(order).find(ok => keys.some(target => ok.includes(target)));
-            return foundKey ? order[foundKey] : "";
+        const keys = Object.keys(order);
+        const getVal = (targets) => {
+            for (let t of targets) { if (order[t] !== undefined) return order[t]; }
+            const foundK = keys.find(k => targets.some(t => k.toLowerCase().includes(t.toLowerCase())));
+            if (foundK) return order[foundK];
+            // Fallback ตามลำดับคอลัมน์ (Index)
+            if (targets.includes("วันที่") || targets.includes("time")) return order[keys[0]];
+            if (targets.includes("ชื่อ") || targets.includes("name")) return order[keys[1]];
+            if (targets.includes("เบอร์") || targets.includes("phone")) return order[keys[2]];
+            if (targets.includes("ยอด") || targets.includes("total")) return order[keys[6]];
+            if (targets.includes("สลิป") || targets.includes("slip")) return order[keys[7]];
+            if (targets.includes("แผนที่") || targets.includes("map")) return order[keys[4]];
+            if (targets.includes("ที่อยู่") || targets.includes("address")) return order[keys[3]];
+            return "";
         };
 
         const status = (getVal(["สถานะ", "status"]) || "รอดำเนินการ").toString().trim();
         const isConfirmed = status === "ชำระเงินแล้ว";
         const phone = getVal(["เบอร์โทร", "phone"]);
         const custName = getVal(["ชื่อลูกค้า", "name"]);
-        const displayIdentity = phone || custName || "N/A";
+        const displayIdentity = (custName && custName !== "N/A") ? custName : (phone || "N/A");
         const mapLink = getVal(["ลิงก์แผนที่", "mapUrl", "map"]) || "";
         const addressText = getVal(["ที่อยู่", "address"]) || "";
         const dateRaw = getVal(["วันที่-เวลา", "Timestamp", "date"]);
         const dateStr = dateRaw ? dateRaw.toString().split('GMT')[0].trim() : "N/A";
-        // เพิ่ม "ราคา" และ "price" เข้าไปในตัวช่วยค้นหา
         const total = parseFloat(getVal(["ยอดรวม", "ราคา", "total", "price"]) || 0);
         const slip = getVal(["ลิงก์สลิป", "slipUrl", "slip"]);
         
