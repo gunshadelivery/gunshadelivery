@@ -77,6 +77,10 @@ function loadProductsFromSheet(callback) {
     Papa.parse(SHEET_CSV_URL, {
         download: true, header: true,
         complete: function (results) {
+            if (!results || !results.data) {
+                console.error("No data found in sheet");
+                return;
+            }
             const data = results.data;
             const grouped = {};
 

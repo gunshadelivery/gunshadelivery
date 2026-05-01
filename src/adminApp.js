@@ -142,24 +142,35 @@ function showDashboard() {
 function logout() { localStorage.removeItem('adminAuth'); location.reload(); }
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadData();
-    loadProducts();
-    
-    // ดักการเปลี่ยนหมวดหมู่เพื่อปรับหน่วย (G หรือ ชิ้น)
-    document.getElementById('pCategory').addEventListener('change', (e) => {
-        const isAccessory = ["Accessories", "Rolling", "Other"].includes(e.target.value);
-        const unitLabel = isAccessory ? "ชิ้น" : "G";
-        const rows = document.querySelectorAll('.variant-row');
-        rows.forEach(row => {
-            row.querySelector('label').textContent = isAccessory ? "ประเภท/รุ่น" : "ขนาด";
-            row.querySelector('span').textContent = unitLabel;
-            const input = row.querySelector('.v-size');
-            input.placeholder = unitLabel;
-            input.type = isAccessory ? "text" : "number";
-        });
-    });
+    try {
+        loadData();
+        loadProducts();
+        
+        // ดักการเปลี่ยนหมวดหมู่เพื่อปรับหน่วย (G หรือ ชิ้น) - เพิ่มการเช็คเพื่อป้องกัน Error
+        const categoryEl = document.getElementById('pCategory');
+        if (categoryEl) {
+            categoryEl.addEventListener('change', (e) => {
+                const isAccessory = ["Accessories", "Rolling", "Other"].includes(e.target.value);
+                const unitLabel = isAccessory ? "ชิ้น" : "G";
+                const rows = document.querySelectorAll('.variant-row');
+                rows.forEach(row => {
+                    const label = row.querySelector('label');
+                    const span = row.querySelector('span');
+                    const input = row.querySelector('.v-size');
+                    if (label) label.textContent = isAccessory ? "ประเภท/รุ่น" : "ขนาด";
+                    if (span) span.textContent = unitLabel;
+                    if (input) {
+                        input.placeholder = unitLabel;
+                        input.type = isAccessory ? "text" : "number";
+                    }
+                });
+            });
+        }
 
-    if (localStorage.getItem('adminAuth') === 'true') showDashboard();
+        if (localStorage.getItem('adminAuth') === 'true') showDashboard();
+    } catch (err) {
+        console.error("Initialization error:", err);
+    }
 });
 
 // --- DASHBOARD DATA ---
