@@ -388,7 +388,10 @@ async function updateConfirm(btn, name, slip) {
     btn.disabled = true;
     btn.textContent = "กำลังอัปเดต...";
     
-    await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "updateStatus", name, slipUrl: slip, status: "ชำระเงินแล้ว" }) });
+    await fetch(GAS_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: "updateStatus", name, slipUrl: slip, status: "ชำระเงินแล้ว" }) 
+    });
     
     showToast("อัปเดตเรียบร้อย กรุณารอข้อมูลอัปเดตสักครู่", "success");
     
@@ -547,23 +550,24 @@ async function saveProduct() {
             variants.forEach((v, idx) => { if (idx < originalVariants.length) toUpdate.push({ variant: v, oldSize: originalVariants[idx].size }); else toAdd.push(v); });
             const toDelete = originalVariants.slice(variants.length);
             for (let item of toUpdate) { 
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "updateProduct", oldName: oldProductName.trim(), oldSize: item.oldSize.toString().trim(), name: name.trim(), category, note, tags, image: imageUrl, size: item.variant.size.toString().trim(), price: item.variant.price, stock: item.variant.stock, sold_count: item.variant.sold, status: parseInt(item.variant.stock) > 0 ? "มีของ" : "หมด" }) });
+                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: "updateProduct", oldName: oldProductName.trim(), oldSize: item.oldSize.toString().trim(), name: name.trim(), category, note, tags, image: imageUrl, size: item.variant.size.toString().trim(), price: item.variant.price, stock: item.variant.stock, sold_count: item.variant.sold, status: parseInt(item.variant.stock) > 0 ? "มีของ" : "หมด" }) });
             }
             for (let v of toAdd) { 
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "addProduct", name: name.trim(), category, note, tags, image: imageUrl, size: v.size.toString().trim(), price: v.price, stock: v.stock, sold_count: v.sold, status: parseInt(v.stock) > 0 ? "มีของ" : "หมด" }) });
+                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: "addProduct", name: name.trim(), category, note, tags, image: imageUrl, size: v.size.toString().trim(), price: v.price, stock: v.stock, sold_count: v.sold, status: parseInt(v.stock) > 0 ? "มีของ" : "หมด" }) });
             }
             for (let oldV of toDelete) { 
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "deleteProduct", name: oldProductName.trim(), size: oldV.size.toString().trim() }) });
+                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: "deleteProduct", name: oldProductName.trim(), size: oldV.size.toString().trim() }) });
             }
         } else {
             for(let variant of variants) { 
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "addProduct", name: name.trim(), category, note, tags, image: imageUrl, size: variant.size.toString().trim(), price: variant.price, stock: variant.stock, sold_count: variant.sold, status: parseInt(variant.stock) > 0 ? "มีของ" : "หมด" }) });
+                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: "addProduct", name: name.trim(), category, note, tags, image: imageUrl, size: variant.size.toString().trim(), price: variant.price, stock: variant.stock, sold_count: variant.sold, status: parseInt(variant.stock) > 0 ? "มีของ" : "หมด" }) });
             }
         }
         showToast(isEditMode ? "แก้ไขข้อมูลสำเร็จ!" : "เพิ่มสินค้าสำเร็จ!", "success");
-        toggleProductModal(false); loadProducts();
+        toggleProductModal(false); 
+        setTimeout(loadProducts, 2000); // รอ 2 วินาทีเพื่อให้ CSV อัปเดตฝั่ง Google
     } catch (err) { 
-        showToast("เกิดข้อผิดพลาดในการบันทึก", "error");
+        console.error("Save error:", err);        showToast("เกิดข้อผิดพลาดในการบันทึก", "error");
     } finally { 
         btn.disabled = false; btn.innerHTML = isEditMode ? "บันทึกการแก้ไข" : "บันทึกและขึ้นขายทันที"; 
     }

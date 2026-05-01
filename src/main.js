@@ -74,7 +74,8 @@ function handleLogoClick() {
 }
 
 function loadProductsFromSheet(callback) {
-    Papa.parse(SHEET_CSV_URL, {
+    const cacheBuster = (SHEET_CSV_URL.includes('?') ? '&' : '?') + `nocache=${Math.random()}&t=${Date.now()}`;
+    Papa.parse(SHEET_CSV_URL + cacheBuster, {
         download: true, header: true,
         complete: function (results) {
             if (!results || !results.data) {
