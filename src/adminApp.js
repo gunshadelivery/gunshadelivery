@@ -503,7 +503,7 @@ async function deleteFullProduct(name) {
     showToast("กำลังลบข้อมูล...", "success");
     const variants = rawProducts.filter(p => p.name === name);
     for(let v of variants) {
-        await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "deleteProduct", name: v.name, size: v.size }) });
+        await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: "deleteProduct", name: v.name.trim(), size: v.size.toString().trim() }) });
     }
     showToast("ลบสินค้าเรียบร้อยแล้ว", "success");
     loadProducts();

@@ -105,9 +105,14 @@ function doPost(e) {
     // --- CASE 4: Update product ---
     if (action === "updateProduct") {
       var data = sheetProducts.getDataRange().getValues();
-      for (var i = 1; i < data.length; i++) {
-        if (data[i][0] == contents.oldName && data[i][1] == contents.oldSize) {
-          sheetProducts.getRange(i + 1, 1, 1, 9).setValues([[
+      for (let i = 1; i < data.length; i++) {
+        var sheetName = (data[i][0] || "").toString().trim();
+        var sheetSize = (data[i][1] || "").toString().trim();
+        var targetName = (contents.oldName || "").toString().trim();
+        var targetSize = (contents.oldSize || "").toString().trim();
+
+        if (sheetName == targetName && sheetSize == targetSize) {
+          sheetProducts.getRange(i + 1, 1, 1, 10).setValues([[
             contents.name,
             contents.size,
             contents.price,
@@ -130,8 +135,13 @@ function doPost(e) {
     // --- CASE 5: Delete product ---
     if (action === "deleteProduct") {
       var data = sheetProducts.getDataRange().getValues();
-      for (var i = 1; i < data.length; i++) {
-        if (data[i][0] == contents.name && data[i][1] == contents.size) {
+      for (let i = 1; i < data.length; i++) {
+        var sheetName = (data[i][0] || "").toString().trim();
+        var sheetSize = (data[i][1] || "").toString().trim();
+        var targetName = (contents.name || "").toString().trim();
+        var targetSize = (contents.size || "").toString().trim();
+
+        if (sheetName == targetName && sheetSize == targetSize) {
           sheetProducts.deleteRow(i + 1);
           return ContentService.createTextOutput(JSON.stringify({ "result": "success" }))
             .setMimeType(ContentService.MimeType.JSON);
