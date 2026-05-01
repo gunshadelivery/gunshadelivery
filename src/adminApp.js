@@ -448,21 +448,35 @@ function renderProductsTable() {
     });
 }
 
-function toggleProductModal(show, mode = 'add') { 
+function toggleProductModal(show, mode = 'add', type = 'herb') { 
     const modal = document.getElementById('productModal');
     const title = document.getElementById('modalTitle');
     const btn = document.getElementById('saveProductBtn');
+    const categorySelect = document.getElementById('pCategory');
     
     isEditMode = mode === 'edit';
-    title.innerText = isEditMode ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่";
+    title.innerText = isEditMode ? "แก้ไขสินค้า" : (type === 'herb' ? "เพิ่มสมุนไพรใหม่" : "เพิ่มอุปกรณ์ใหม่");
     btn.innerText = isEditMode ? "บันทึกการแก้ไข" : "บันทึกและขึ้นขายทันที";
-
+    
     if(!show) {
         document.getElementById('productForm').reset();
         document.getElementById('variantContainer').innerHTML = "";
         addVariant();
+        modal.classList.add('hidden');
+        return;
     }
-    modal.classList.toggle('hidden', !show); 
+
+    if (!isEditMode) {
+        document.getElementById('productForm').reset();
+        document.getElementById('variantContainer').innerHTML = "";
+        // เซ็ตหมวดหมู่เริ่มต้นตามประเภทที่กด
+        if (type === 'herb') categorySelect.value = "Hybrid";
+        else categorySelect.value = "Accessories";
+        
+        addVariant(); // เรียก addVariant หลังจากเซ็ตหมวดหมู่แล้วเพื่อให้หน่วยเปลี่ยนตาม
+    }
+    
+    modal.classList.remove('hidden'); 
 }
 
 function editProduct(name) {
