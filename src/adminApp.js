@@ -141,7 +141,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- DASHBOARD DATA ---
 function loadData() {
     if (!ORDERS_CSV_URL) return;
-    Papa.parse(ORDERS_CSV_URL + "&t=" + Date.now(), {
+    // เพิ่มตัวล้าง Cache ด้วยเลขสุ่มที่เปลี่ยนทุกครั้งที่โหลด
+    const cacheBuster = `&nocache=${Math.random()}&t=${Date.now()}`;
+    Papa.parse(ORDERS_CSV_URL + cacheBuster, {
         download: true, header: true, skipEmptyLines: true,
         complete: (results) => { rawOrders = results.data; processSales(); }
     });
@@ -239,7 +241,11 @@ function renderTop(counts) {
 
 function renderOrdersTable() {
     const body = document.getElementById('orderTableBody'); body.innerHTML = "";
-    [...rawOrders].reverse().slice(0,20).forEach(order => {
+    
+    // เรียงลำดับจากใหม่ไปเก่า (อิงตามลำดับใน Google Sheets ที่มักจะต่อท้าย)
+    const sortedOrders = [...rawOrders].reverse();
+
+    sortedOrders.slice(0, 50).forEach(order => {
         // Helper to get value with multiple potential keys
         const getVal = (keys) => {
             for (let k of keys) { if (order[k] !== undefined) return order[k]; }
@@ -256,7 +262,8 @@ function renderOrdersTable() {
         const addressText = getVal(["ที่อยู่", "address"]) || "";
         const dateRaw = getVal(["วันที่-เวลา", "Timestamp", "date"]);
         const dateStr = dateRaw ? dateRaw.toString().split('GMT')[0].trim() : "N/A";
-        const total = parseFloat(getVal(["ยอดรวม", "total"]) || 0);
+        // เพิ่ม "ราคา" และ "price" เข้าไปในตัวช่วยค้นหา
+        const total = parseFloat(getVal(["ยอดรวม", "ราคา", "total", "price"]) || 0);
         const slip = getVal(["ลิงก์สลิป", "slipUrl", "slip"]);
         
         body.innerHTML += `
