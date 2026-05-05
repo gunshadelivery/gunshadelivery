@@ -1,4 +1,7 @@
 function doGet(e) {
+  if (!e || !e.parameter) {
+    return ContentService.createTextOutput(JSON.stringify({ "error": "No parameters" })).setMimeType(ContentService.MimeType.JSON);
+  }
   var action = e.parameter.action;
   var sheetOrders = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Orders");
   var sheetProducts = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Product List");
@@ -7,21 +10,22 @@ function doGet(e) {
     var data = sheetOrders.getDataRange().getValues();
     return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
   }
-  
+
   if (action === "getProducts") {
     var data = sheetProducts.getDataRange().getValues();
     return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
   }
+
+  return ContentService.createTextOutput(JSON.stringify({ "error": "Invalid action" })).setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetOrders = ss.getSheetByName("Orders");
-  var sheetProducts = ss.getSheetByName("Product List");
-  var contents = JSON.parse(e.postData.contents);
-  var action = contents.action;
-
   try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetOrders = ss.getSheetByName("Orders");
+    var sheetProducts = ss.getSheetByName("Product List");
+    var contents = JSON.parse(e.postData.contents);
+    var action = contents.action;
     // --- CASE 1: Log new order ---
     if (action === "log") {
       // แทรกแถวใหม่ที่แถวที่ 2 (บนสุดต่อจาก Header)
@@ -42,7 +46,7 @@ function doPost(e) {
       // ตัดสต็อกสินค้า
       if (contents.itemsArray) {
         var products = sheetProducts.getDataRange().getValues();
-        contents.itemsArray.forEach(function(item) {
+        contents.itemsArray.forEach(function (item) {
           for (var i = 1; i < products.length; i++) {
             if (products[i][0] == item.name && products[i][1] == item.size) {
               var currentStock = parseInt(products[i][7]) || 0;
@@ -52,6 +56,10 @@ function doPost(e) {
               sheetProducts.getRange(i + 1, 8).setValue(newStock);
               sheetProducts.getRange(i + 1, 9).setValue(newSold);
               
+              // อัปเดตข้อมูลในหน่วยความจำเพื่อป้องกันปัญหาถ้ามีสินค้าซ้ำกันใน itemsArray
+              products[i][7] = newStock;
+              products[i][8] = newSold;
+
               // ปรับสถานะอัตโนมัติถ้าของหมด
               if (newStock <= 0) {
                 sheetProducts.getRange(i + 1, 7).setValue("หมด");
@@ -77,6 +85,8 @@ function doPost(e) {
             .setMimeType(ContentService.MimeType.JSON);
         }
       }
+      return ContentService.createTextOutput(JSON.stringify({ "result": "error", "message": "Order not found" }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
 
     // --- CASE 3: Add new product ---
@@ -123,6 +133,8 @@ function doPost(e) {
             .setMimeType(ContentService.MimeType.JSON);
         }
       }
+      return ContentService.createTextOutput(JSON.stringify({ "result": "error", "message": "Product not found" }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
 
     // --- CASE 5: Delete product ---
@@ -140,6 +152,8 @@ function doPost(e) {
             .setMimeType(ContentService.MimeType.JSON);
         }
       }
+      return ContentService.createTextOutput(JSON.stringify({ "result": "error", "message": "Product not found to delete" }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
 
     return ContentService.createTextOutput(JSON.stringify({ "result": "action not found" }))

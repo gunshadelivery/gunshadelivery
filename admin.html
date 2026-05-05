@@ -67,6 +67,7 @@
                 <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
                     <button onclick="switchTab('overview')" id="tab-overview" class="px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-emerald-600">สรุปยอดขาย</button>
                     <button onclick="switchTab('products')" id="tab-products" class="px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-emerald-600">จัดการสินค้า</button>
+                    <button onclick="switchTab('promptpay')" id="tab-promptpay" class="px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-emerald-600">⚡ Promptpay</button>
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="logout()" class="text-slate-400 hover:text-red-500 transition text-sm">Logout</button>
@@ -175,9 +176,98 @@
                 </div>
             </div>
         </main>
+
+        <!-- PROMPTPAY TAB -->
+        <main id="view-promptpay" class="hidden max-w-6xl mx-auto p-4 md:p-8 space-y-8 animate-in fade-in duration-500">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <span class="w-2 h-8 bg-blue-500 rounded-full"></span>
+                    จัดการช่องทาง Promptpay
+                </h2>
+                <button onclick="togglePromptpayModal(true)" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition active:scale-95 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    เพิ่ม Promptpay ใหม่
+                </button>
+            </div>
+
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-400">
+                            <tr>
+                                <th class="px-6 py-4">QR Code</th>
+                                <th class="px-6 py-4">ชื่อบัญชี</th>
+                                <th class="px-6 py-4">ธนาคาร</th>
+                                <th class="px-6 py-4">เบอร์บัญชี</th>
+                                <th class="px-6 py-4">สถานะ</th>
+                                <th class="px-6 py-4 text-right">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="promptpayTableBody" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <!-- ADD PRODUCT MODAL -->
+    <!-- ADD/EDIT PROMPTPAY MODAL -->
+    <div id="promptpayModal" class="fixed inset-0 z-[110] bg-black/50 hidden backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b flex justify-between items-center bg-slate-50">
+                <h3 id="promptpayModalTitle" class="font-bold text-lg">เพิ่ม Promptpay ใหม่</h3>
+                <button onclick="togglePromptpayModal(false)" class="p-2 hover:bg-slate-200 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-5">
+                <form id="promptpayForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">ชื่อบัญชี *</label>
+                        <input type="text" id="ppName" required class="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="เช่น สมชาย จันทร์เสมา">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">ธนาคาร *</label>
+                        <select id="ppBank" required class="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                            <option value="">-- เลือกธนาคาร --</option>
+                            <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                            <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                            <option value="ธนาคารเมืองไทย (TTB)">ธนาคารเมืองไทย (TTB)</option>
+                            <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                            <option value="ธนาคารกรุงศรีอยุธยา (BAY)">ธนาคารกรุงศรีอยุธยา (BAY)</option>
+                            <option value="ธนาคารทหารไทย (TMB)">ธนาคารทหารไทย (TMB)</option>
+                            <option value="ธนาคารยูโอบี (UOB)">ธนาคารยูโอบี (UOB)</option>
+                            <option value="ธนาคารอื่นๆ">ธนาคารอื่นๆ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">เบอร์บัญชี / หมายเลขโทรศัพท์ *</label>
+                        <input type="text" id="ppNumber" required class="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="เช่น 0812345678 หรือ 123-4-5678-9">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">QR Code รูปภาพ *</label>
+                        <div id="qrPreview" class="mb-4 w-32 h-32 mx-auto border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-50 overflow-hidden">
+                            <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </div>
+                        <input type="file" id="ppImage" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" onchange="previewQRCode(this)">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">สถานะ</label>
+                        <select id="ppStatus" class="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                            <option value="active">ใช้งาน</option>
+                            <option value="inactive">ไม่ใช้งาน</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="p-6 border-t bg-slate-50">
+                <button id="savePromptpayBtn" onclick="savePromptpay()" class="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                    บันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./src/adminApp.js"></script>
     <div id="productModal" class="fixed inset-0 z-[110] bg-black/50 hidden backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="p-6 border-b flex justify-between items-center bg-slate-50">

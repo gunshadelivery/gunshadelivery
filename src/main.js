@@ -298,7 +298,68 @@ function updateQty(idx, change) {
 }
 
 // --- CHECKOUT ---
-function goToCheckout() { document.getElementById('checkoutModal').classList.remove('hidden'); }
+function loadAndDisplayPaymentMethods() {
+    const container = document.getElementById('paymentMethodsContainer');
+    const stored = localStorage.getItem('promptpayData');
+    const promptpayList = stored ? JSON.parse(stored) : [];
+    const activePromptpay = promptpayList.filter(pp => pp.status === 'active');
+
+    if (activePromptpay.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 text-slate-500 text-sm">
+            <p>ยังไม่มีข้อมูลการชำระเงิน</p>
+        </div>`;
+        return;
+    }
+
+    container.innerHTML = activePromptpay.map((pp, idx) => `
+        <div class="bg-white border border-blue-100 rounded-xl p-4 shadow-sm hover:shadow-md transition">
+            <div class="flex gap-4">
+                ${pp.qrImage ? `
+                    <div class="flex-shrink-0">
+                        <img src="${pp.qrImage}" class="w-20 h-20 object-cover rounded-lg border border-slate-200 shadow-sm">
+                    </div>
+                ` : ''}
+                <div class="flex-1">
+                    <h5 class="font-bold text-slate-800 text-sm mb-1">${pp.name}</h5>
+                    <p class="text-[11px] text-slate-600 mb-1">
+                        <span class="font-semibold text-slate-700">${pp.bank}</span>
+                    </p>
+                    <p class="text-[11px] text-slate-600 font-mono bg-slate-50 px-2 py-1 rounded inline-block">
+                        ${pp.number}
+                    </p>
+                    <p class="text-[10px] text-slate-400 mt-2">โปรดโอนเงินไปยังบัญชีนี้</p>
+                </div>
+                ${pp.qrImage ? `
+                    <div class="flex-shrink-0">
+                        <button onclick="previewPaymentQR('${pp.qrImage}')" class="px-3 py-1 text-[10px] font-bold bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+                            ดู QR
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function previewPaymentQR(qrUrl) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center animate-in zoom-in duration-300">
+            <button onclick="this.parentElement.parentElement.remove()" class="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <img src="${qrUrl}" class="w-64 h-64 mx-auto rounded-xl shadow-md mb-4 object-cover">
+            <p class="text-sm text-slate-600 font-medium">สแกน QR Code นี้เพื่อโอนเงิน</p>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function goToCheckout() { 
+    loadAndDisplayPaymentMethods();
+    document.getElementById('checkoutModal').classList.remove('hidden'); 
+}
 function closeCheckout() { document.getElementById('checkoutModal').classList.add('hidden'); }
 
 function previewSlip(input) {
@@ -435,6 +496,7 @@ window.updateQty = updateQty;
 window.goToCheckout = goToCheckout;
 window.closeCheckout = closeCheckout;
 window.previewSlip = previewSlip;
+window.previewPaymentQR = previewPaymentQR;
 window.getCurrentLocation = getCurrentLocation;
 window.submitOrder = submitOrder;
 window.redirectToLine = () => {

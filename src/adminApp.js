@@ -145,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         loadData();
         loadProducts();
+        loadPromptpayData();
         
         // ดักการเปลี่ยนหมวดหมู่เพื่อปรับหน่วย (G หรือ ชิ้น) - เพิ่มการเช็คเพื่อป้องกัน Error
         const categoryEl = document.getElementById('pCategory');
@@ -573,6 +574,164 @@ async function saveProduct() {
     }
 }
 
+// --- PROMPTPAY MANAGEMENT ---
+let promptpayList = [];
+let editingPromptpayId = null;
+
+function loadPromptpayData() {
+    const stored = localStorage.getItem('promptpayData');
+    promptpayList = stored ? JSON.parse(stored) : [];
+    renderPromptpayTable();
+}
+
+function savePromptpayToStorage() {
+    localStorage.setItem('promptpayData', JSON.stringify(promptpayList));
+}
+
+function renderPromptpayTable() {
+    const tbody = document.getElementById('promptpayTableBody');
+    tbody.innerHTML = "";
+    
+    if (promptpayList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">ยังไม่มีข้อมูล Promptpay</td></tr>`;
+        return;
+    }
+
+    promptpayList.forEach((pp, idx) => {
+        tbody.innerHTML += `<tr class="hover:bg-slate-50 transition">
+            <td class="px-6 py-4">
+                ${pp.qrImage ? `<img src="${pp.qrImage}" class="w-12 h-12 object-cover rounded-lg shadow-sm border border-slate-100">` : '<div class="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center"><span class="text-xs text-slate-400">ไม่มี</span></div>'}
+            </td>
+            <td class="px-6 py-4 font-bold text-slate-800">${pp.name}</td>
+            <td class="px-6 py-4 text-slate-600">${pp.bank}</td>
+            <td class="px-6 py-4 font-mono text-sm text-slate-600">${pp.number}</td>
+            <td class="px-6 py-4">
+                <span class="px-3 py-1 rounded-full text-[10px] font-bold ${pp.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">
+                    ${pp.status === 'active' ? '✓ ใช้งาน' : '○ ไม่ใช้งาน'}
+                </span>
+            </td>
+            <td class="px-6 py-4 text-right flex gap-2 justify-end">
+                <button onclick="editPromptpay(${idx})" class="p-2 text-slate-400 hover:text-blue-600 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                </button>
+                <button onclick="deletePromptpay(${idx})" class="p-2 text-slate-400 hover:text-red-500 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </td>
+        </tr>`;
+    });
+}
+
+function togglePromptpayModal(show, idx = null) {
+    const modal = document.getElementById('promptpayModal');
+    const form = document.getElementById('promptpayForm');
+    const titleEl = document.getElementById('promptpayModalTitle');
+    
+    if (!show) {
+        form.reset();
+        document.getElementById('qrPreview').innerHTML = '<svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>';
+        editingPromptpayId = null;
+        modal.classList.add('hidden');
+        return;
+    }
+
+    editingPromptpayId = idx;
+    if (idx !== null) {
+        const pp = promptpayList[idx];
+        titleEl.innerText = "แก้ไข Promptpay";
+        document.getElementById('ppName').value = pp.name;
+        document.getElementById('ppBank').value = pp.bank;
+        document.getElementById('ppNumber').value = pp.number;
+        document.getElementById('ppStatus').value = pp.status;
+        if (pp.qrImage) {
+            document.getElementById('qrPreview').innerHTML = `<img src="${pp.qrImage}" class="w-full h-full object-cover">`;
+        }
+    } else {
+        titleEl.innerText = "เพิ่ม Promptpay ใหม่";
+        form.reset();
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function previewQRCode(input) {
+    if (input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('qrPreview').innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+            input.dataset.preview = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+async function savePromptpay() {
+    const name = document.getElementById('ppName').value.trim();
+    const bank = document.getElementById('ppBank').value;
+    const number = document.getElementById('ppNumber').value.trim();
+    const status = document.getElementById('ppStatus').value;
+    const imgFile = document.getElementById('ppImage').files[0];
+    const imgPreview = document.getElementById('ppImage').dataset.preview;
+    
+    if (!name || !bank || !number) {
+        showToast("กรุณากรอกข้อมูลให้ครบถ้วน", "error");
+        return;
+    }
+
+    const btn = document.getElementById('savePromptpayBtn');
+    btn.disabled = true;
+    btn.innerText = "กำลังบันทึก...";
+
+    try {
+        let qrImage = imgPreview || (editingPromptpayId !== null ? promptpayList[editingPromptpayId].qrImage : '');
+
+        // Upload QR image to ImgBB if new file selected
+        if (imgFile) {
+            const formData = new FormData();
+            formData.append('image', imgFile);
+            const res = await fetch(getImgbbUploadUrl(), { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) qrImage = data.data.url;
+        }
+
+        const promptpayData = { name, bank, number, status, qrImage };
+
+        if (editingPromptpayId !== null) {
+            promptpayList[editingPromptpayId] = promptpayData;
+            showToast("แก้ไข Promptpay สำเร็จ!", "success");
+        } else {
+            promptpayList.push(promptpayData);
+            showToast("เพิ่ม Promptpay สำเร็จ!", "success");
+        }
+
+        savePromptpayToStorage();
+        renderPromptpayTable();
+        togglePromptpayModal(false);
+    } catch (err) {
+        console.error("Save error:", err);
+        showToast("เกิดข้อผิดพลาดในการบันทึก", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "บันทึก";
+    }
+}
+
+async function editPromptpay(idx) {
+    togglePromptpayModal(true, idx);
+}
+
+async function deletePromptpay(idx) {
+    const pp = promptpayList[idx];
+    const confirmed = await customConfirm("ยืนยันการลบ", `ลบบัญชี Promptpay "${pp.name}" ใช่หรือไม่?`, "🗑️");
+    
+    if (confirmed) {
+        promptpayList.splice(idx, 1);
+        savePromptpayToStorage();
+        renderPromptpayTable();
+        showToast("ลบ Promptpay สำเร็จ!", "success");
+    }
+}
+
 // === EXPOSE GLOBALS ===
 window.checkPass = checkPass;
 window.logout = logout;
@@ -585,3 +744,9 @@ window.deleteFullProduct = deleteFullProduct;
 window.saveProduct = saveProduct;
 window.addVariant = addVariant;
 window.removeVariant = removeVariant;
+window.togglePromptpayModal = togglePromptpayModal;
+window.editPromptpay = editPromptpay;
+window.deletePromptpay = deletePromptpay;
+window.savePromptpay = savePromptpay;
+window.previewQRCode = previewQRCode;
+window.loadPromptpayData = loadPromptpayData;
