@@ -302,11 +302,15 @@ function loadAndDisplayPaymentMethods() {
     const container = document.getElementById('paymentMethodsContainer');
     const stored = localStorage.getItem('promptpayData');
     const promptpayList = stored ? JSON.parse(stored) : [];
-    const activePromptpay = promptpayList.filter(pp => pp.status === 'active');
+    const normalizedPromptpay = promptpayList.map(pp => ({ status: pp.status || 'active', ...pp }));
+    const activePromptpay = normalizedPromptpay.filter(pp => pp.status === 'active');
 
     if (activePromptpay.length === 0) {
+        const message = normalizedPromptpay.length > 0
+            ? 'ยังไม่มีช่องทาง Promptpay ที่เปิดใช้งาน'
+            : 'ยังไม่มีข้อมูลการชำระเงิน';
         container.innerHTML = `<div class="text-center py-4 text-slate-500 text-sm">
-            <p>ยังไม่มีข้อมูลการชำระเงิน</p>
+            <p>${message}</p>
         </div>`;
         return;
     }
@@ -345,14 +349,15 @@ function previewPaymentQR(qrUrl) {
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in';
     modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center animate-in zoom-in duration-300">
-            <button onclick="this.parentElement.parentElement.remove()" class="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center animate-in zoom-in duration-300" onclick="event.stopPropagation()">
+            <button onclick="this.closest('.fixed').remove()" class="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
             <img src="${qrUrl}" class="w-64 h-64 mx-auto rounded-xl shadow-md mb-4 object-cover">
             <p class="text-sm text-slate-600 font-medium">สแกน QR Code นี้เพื่อโอนเงิน</p>
         </div>
     `;
+    modal.onclick = () => modal.remove();
     document.body.appendChild(modal);
 }
 
@@ -409,6 +414,94 @@ function getCurrentLocation(event) {
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } // Increased timeout to 10s
     );
+}
+
+// --- MAP MODAL MANAGEMENT ---
+let mapInstance = null;
+let selectedLat = null;
+let selectedLng = null;
+let mapMarker = null;
+
+function openMapModal() {
+    const modal = document.getElementById('mapModal');
+    modal.classList.remove('hidden');
+    
+    // Initialize map after modal is visible
+    setTimeout(() => {
+        if (!mapInstance) {
+            initializeMap();
+        } else {
+            mapInstance.invalidateSize();
+        }
+    }, 100);
+}
+
+function closeMapModal() {
+    const modal = document.getElementById('mapModal');
+    modal.classList.add('hidden');
+    document.getElementById('confirmMapBtn').disabled = true;
+}
+
+function initializeMap() {
+    const container = document.getElementById('mapContainer');
+    const custMapInput = document.getElementById('custMap');
+    
+    // Try to get initial location from current GPS or use Bangkok as default
+    let initialLat = 13.7563, initialLng = 100.5018; // Bangkok
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            initialLat = pos.coords.latitude;
+            initialLng = pos.coords.longitude;
+            createMap(initialLat, initialLng);
+        }, () => {
+            createMap(initialLat, initialLng);
+        }, { timeout: 5000 });
+    } else {
+        createMap(initialLat, initialLng);
+    }
+    
+    function createMap(lat, lng) {
+        if (mapInstance) mapInstance.remove();
+        
+        mapInstance = L.map('mapContainer').setView([lat, lng], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(mapInstance);
+        
+        // Click handler for map
+        mapInstance.on('click', (e) => {
+            selectedLat = e.latlng.lat;
+            selectedLng = e.latlng.lng;
+            
+            // Remove old marker
+            if (mapMarker) mapInstance.removeLayer(mapMarker);
+            
+            // Add new marker
+            mapMarker = L.marker([selectedLat, selectedLng]).addTo(mapInstance)
+                .bindPopup(`📍 พิกัด: ${selectedLat.toFixed(5)}, ${selectedLng.toFixed(5)}`)
+                .openPopup();
+            
+            // Enable confirm button
+            document.getElementById('confirmMapBtn').disabled = false;
+        });
+    }
+}
+
+function confirmMapLocation() {
+    if (!selectedLat || !selectedLng) {
+        showToast("กรุณาเลือกตำแหน่งบนแผนที่", "error");
+        return;
+    }
+    
+    // Create Google Maps URL
+    const mapUrl = `https://www.google.com/maps?q=${selectedLat},${selectedLng}`;
+    document.getElementById('custMap').value = mapUrl;
+    
+    showToast("✓ บันทึกตำแหน่งเรียบร้อย!", "success");
+    closeMapModal();
 }
 
 async function submitOrder() {
@@ -498,6 +591,9 @@ window.closeCheckout = closeCheckout;
 window.previewSlip = previewSlip;
 window.previewPaymentQR = previewPaymentQR;
 window.getCurrentLocation = getCurrentLocation;
+window.openMapModal = openMapModal;
+window.closeMapModal = closeMapModal;
+window.confirmMapLocation = confirmMapLocation;
 window.submitOrder = submitOrder;
 window.redirectToLine = () => {
     if (currentLineUrl) window.location.href = currentLineUrl;

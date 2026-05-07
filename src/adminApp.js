@@ -580,7 +580,7 @@ let editingPromptpayId = null;
 
 function loadPromptpayData() {
     const stored = localStorage.getItem('promptpayData');
-    promptpayList = stored ? JSON.parse(stored) : [];
+    promptpayList = stored ? JSON.parse(stored).map(pp => ({ status: pp.status || 'active', ...pp })) : [];
     renderPromptpayTable();
 }
 
@@ -642,7 +642,7 @@ function togglePromptpayModal(show, idx = null) {
         document.getElementById('ppName').value = pp.name;
         document.getElementById('ppBank').value = pp.bank;
         document.getElementById('ppNumber').value = pp.number;
-        document.getElementById('ppStatus').value = pp.status;
+        document.getElementById('ppStatus').value = pp.status || 'active';
         if (pp.qrImage) {
             document.getElementById('qrPreview').innerHTML = `<img src="${pp.qrImage}" class="w-full h-full object-cover">`;
         }
